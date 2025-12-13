@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Media;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Hardware.RFID
+﻿namespace RAWSimO.Hardware.RFID
 {
     /// <summary>
     /// CR501E-S150315 RFID Card: iso15693

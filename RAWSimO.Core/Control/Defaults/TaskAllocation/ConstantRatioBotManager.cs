@@ -2,12 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using RAWSimO.Core.Elements;
-using RAWSimO.Core.Items;
-using RAWSimO.Toolbox;
-using RAWSimO.Core.Management;
 using RAWSimO.Core.Geometrics;
 using RAWSimO.Core.Metrics;
 

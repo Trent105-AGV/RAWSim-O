@@ -1,11 +1,7 @@
 ﻿using RAWSimO.Core.IO;
 using RAWSimO.MultiAgentPathFinding.Methods;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Configurations
 {

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Control.Shared
+﻿namespace RAWSimO.Core.Control.Shared
 {
     /// <summary>
     /// Types for the tie-breakers of fast lane assignment decisions.

@@ -6,7 +6,10 @@ PUBLISH_DIR = $(DIST_DIR)/publish
 .PHONY: build publish run clean
 
 build:
-	dotnet build -c Release -p:EnableWindowsTargeting=true
+	dotnet build -c XPlatRelease -p:EnableWindowsTargeting=true
+
+publish:
+	dotnet publish -c XPlatRelease -p:EnableWindowsTargeting=true
 
 # publish:
 # 	dotnet publish -c Release -r $(RUNTIME) --self-contained -p:EnableWindowsTargeting=true -o $(PUBLISH_DIR)

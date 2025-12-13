@@ -1,5 +1,4 @@
 ﻿using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Control.Shared;
 using RAWSimO.Core.Elements;
 using RAWSimO.Core.Metrics;
 using RAWSimO.Core.Waypoints;
@@ -7,8 +6,6 @@ using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Control.Defaults.Repositioning
 {

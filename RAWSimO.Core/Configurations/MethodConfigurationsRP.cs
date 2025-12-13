@@ -1,10 +1,5 @@
 ﻿using RAWSimO.Core.Control.Shared;
 using RAWSimO.Core.IO;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Configurations
 {

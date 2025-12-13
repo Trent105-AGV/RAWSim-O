@@ -1,17 +1,13 @@
 ﻿using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Control.Defaults.ItemStorage;
 using RAWSimO.Core.Control.Defaults.PodStorage;
 using RAWSimO.Core.Elements;
 using RAWSimO.Core.Interfaces;
-using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
 using RAWSimO.Core.Metrics;
 using RAWSimO.Core.Waypoints;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Control.Shared
 {

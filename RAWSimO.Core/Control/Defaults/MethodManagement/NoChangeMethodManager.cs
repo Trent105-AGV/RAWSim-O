@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Control.Defaults.MethodManagement
+﻿namespace RAWSimO.Core.Control.Defaults.MethodManagement
 {
     /// <summary>
     /// Defines a method manager that does not change any methods at all.

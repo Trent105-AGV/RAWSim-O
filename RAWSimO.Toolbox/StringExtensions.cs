@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Toolbox
+﻿namespace RAWSimO.Toolbox
 {
     /// <summary>
     /// Exposes some useful extensions for working with strings.

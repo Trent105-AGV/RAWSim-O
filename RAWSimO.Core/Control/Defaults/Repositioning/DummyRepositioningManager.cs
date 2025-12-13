@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RAWSimO.Core.Elements;
-using RAWSimO.Core.Waypoints;
+﻿using RAWSimO.Core.Elements;
 
 namespace RAWSimO.Core.Control.Defaults.Repositioning
 {

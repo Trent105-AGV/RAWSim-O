@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Management
+﻿namespace RAWSimO.Core.Management
 {
     /// <summary>
     /// Indicates which information shall be used for rendering heat informtation for the pods.

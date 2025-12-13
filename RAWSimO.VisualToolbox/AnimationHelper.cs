@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
-using System.Windows.Media.Animation;
-
-namespace RAWSimO.VisualToolbox
+﻿namespace RAWSimO.VisualToolbox
 {
     /// <summary>
     /// A helper class to simplify animation.

@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-using Emgu.CV;
-using ZXing;
-
 namespace RAWSimO.Hardware.Barcode
 {
     /// <summary>

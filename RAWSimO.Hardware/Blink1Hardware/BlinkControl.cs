@@ -1,14 +1,5 @@
 ﻿using RAWSimO.Hardware.RobotControl;
 using RAWSimO.Toolbox;
-using HidLibrary;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using ThingM.Blink1;
-using ThingM.Blink1.ColorProcessor;
 
 namespace RAWSimO.Hardware.Blink1Hardware
 {

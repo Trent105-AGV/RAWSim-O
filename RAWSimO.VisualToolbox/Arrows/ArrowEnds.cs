@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.VisualToolbox.Arrows
+﻿namespace RAWSimO.VisualToolbox.Arrows
 {
     /// <summary>
     /// Indicates which end of the line has an arrow. (see <see href="http://www.charlespetzold.com/blog/2007/04/191200.html"/>)

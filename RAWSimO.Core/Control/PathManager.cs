@@ -3,7 +3,6 @@
 
 using RAWSimO.Core.Bots;
 using RAWSimO.Core.Elements;
-using RAWSimO.Core.Helper;
 using RAWSimO.Core.Interfaces;
 using RAWSimO.Core.Waypoints;
 using RAWSimO.MultiAgentPathFinding.DataStructures;
@@ -15,7 +14,6 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using RAWSimO.Core.Statistics;
-using RAWSimO.Core.IO;
 using RAWSimO.Core.Geometrics;
 using RAWSimO.Toolbox;
 

@@ -1,5 +1,4 @@
-﻿using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Control.Shared;
+﻿using RAWSimO.Core.Control.Shared;
 using RAWSimO.Core.Elements;
 using RAWSimO.Core.Geometrics;
 using RAWSimO.Core.Info;
@@ -7,10 +6,8 @@ using RAWSimO.Core.IO;
 using RAWSimO.Core.Metrics;
 using RAWSimO.Core.Statistics;
 using RAWSimO.Toolbox;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using static RAWSimO.Core.Control.PathManager;
 
 namespace RAWSimO.Core.Waypoints
