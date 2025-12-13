@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Configurations>Debug;Release;XPlat;XPlatRelease</Configurations>
+    <Platforms>AnyCPU</Platforms>
+    <LangVersion>default</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RAWSimO.Core\RAWSimO.Core.csproj" />
+  </ItemGroup>
+
+</Project>

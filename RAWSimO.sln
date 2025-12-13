@@ -39,6 +39,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B486B06E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RAWSimO.Core.Tests", "Tests\RAWSimO.Core.Tests\RAWSimO.Core.Tests.csproj", "{D78CCAD4-9849-4BF5-AA49-7071B7CD6204}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.Rendering2D", "RAWSimO.Rendering2D\RAWSimO.Rendering2D.csproj", "{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.AvaloniaClient", "RAWSimO.AvaloniaClient\RAWSimO.AvaloniaClient.csproj", "{098A2816-5D59-4572-8297-537908DB1749}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -169,6 +173,22 @@ Global
 		{D78CCAD4-9849-4BF5-AA49-7071B7CD6204}.XPlat|Any CPU.Build.0 = XPlat|Any CPU
 		{D78CCAD4-9849-4BF5-AA49-7071B7CD6204}.XPlatRelease|Any CPU.ActiveCfg = XPlatRelease|Any CPU
 		{D78CCAD4-9849-4BF5-AA49-7071B7CD6204}.XPlatRelease|Any CPU.Build.0 = XPlatRelease|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.XPlat|Any CPU.ActiveCfg = XPlat|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.XPlat|Any CPU.Build.0 = XPlat|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.XPlatRelease|Any CPU.ActiveCfg = XPlatRelease|Any CPU
+		{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}.XPlatRelease|Any CPU.Build.0 = XPlatRelease|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.Release|Any CPU.Build.0 = Release|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.XPlat|Any CPU.ActiveCfg = XPlat|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.XPlat|Any CPU.Build.0 = XPlat|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.XPlatRelease|Any CPU.ActiveCfg = XPlatRelease|Any CPU
+		{098A2816-5D59-4572-8297-537908DB1749}.XPlatRelease|Any CPU.Build.0 = XPlatRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

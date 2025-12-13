@@ -6,10 +6,12 @@ PUBLISH_DIR = $(DIST_DIR)/publish
 .PHONY: build publish run clean
 
 build:
-	dotnet build -c XPlatRelease -p:EnableWindowsTargeting=true
+	dotnet build -c XPlatRelease 
 
 publish:
-	dotnet publish -c XPlatRelease -p:EnableWindowsTargeting=true
+	dotnet publish -c XPlatRelease -o $(PUBLISH_DIR)
+
+
 
 # publish:
 # 	dotnet publish -c Release -r $(RUNTIME) --self-contained -p:EnableWindowsTargeting=true -o $(PUBLISH_DIR)
@@ -18,14 +20,14 @@ publish:
 # 	dotnet publish RAWSimO.CLI/RAWSimO.CLI.csproj -c Release --self-contained -p:EnableWindowsTargeting=true /p:PublishSingleFile=true -o $(PUBLISH_DIR)
 
 # publish-visual:
-# 	dotnet publish RAWSimO.Visualization/RAWSimO.Visualization.csproj -c Release -r $(RUNTIME) --self-contained -p:EnableWindowsTargeting=true /p:PublishSingleFile=true -o $(PUBLISH_DIR)
+# 	dotnet publish RAWSimO.Visualization/RAWSimO.Visualization.csproj -c Release -r $(RUNTIME) --self-contained  /p:PublishSingleFile=true -o $(PUBLISH_DIR)
 
 # run-cli:
 # 	wine $(PUBLISH_DIR)/RAWSimO.CLI.exe
 
-run-visual:
-	wine $(PUBLISH_DIR)/RAWSimO.Visualization.exe
+# run-visual:
+# 	wine $(PUBLISH_DIR)/RAWSimO.Visualization.exe
 
 clean:
-	dotnet clean
+	dotnet clean -p:EnableWindowsTargeting=true
 	rm -rf $(DIST_DIR)
