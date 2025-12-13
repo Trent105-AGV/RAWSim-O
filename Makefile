@@ -6,7 +6,7 @@ PUBLISH_DIR = $(DIST_DIR)/publish
 .PHONY: build publish run clean
 
 build:
-	dotnet build -c XPlatRelease 
+	dotnet build -c XPlatRelease
 
 publish:
 	dotnet publish -c XPlatRelease -o $(PUBLISH_DIR)
