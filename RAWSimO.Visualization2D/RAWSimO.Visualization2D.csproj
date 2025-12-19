@@ -6,6 +6,7 @@
     <Configurations>Debug;Release;XPlat;XPlatRelease</Configurations>
     <Platforms>AnyCPU</Platforms>
     <LangVersion>default</LangVersion>
+    <RootNamespace>RAWSimO.AvaloniaClient</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

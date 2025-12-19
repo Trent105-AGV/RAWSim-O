@@ -16,18 +16,14 @@ app.MapGet("/simulation/status", (SimulationHost host) =>
     return Results.Ok(resp);
 });
 
-app.MapPost("/simulation/start",
-    async Task<Results<Ok, BadRequest<string>, Conflict<string>>> (SimulationHost host, StartRequest req) =>
+app.MapPost("/simulation/start", Task<Results<Ok, BadRequest<string>, Conflict<string>>> (SimulationHost host, StartRequest req) =>
     {
         if (string.IsNullOrWhiteSpace(req.Instance) || string.IsNullOrWhiteSpace(req.Setting) ||
             string.IsNullOrWhiteSpace(req.ControlConfig) ||
             string.IsNullOrWhiteSpace(req.StatisticsDir))
-            return TypedResults.BadRequest("Instance/Setting/ControlConfig/StatisticsDir are required");
+            return Task.FromResult<Results<Ok, BadRequest<string>, Conflict<string>>>(TypedResults.BadRequest("Instance/Setting/ControlConfig/StatisticsDir are required"));
 
-        if (!host.TryStart(req, out var error))
-            return TypedResults.Conflict(error ?? "Failed to start");
-
-        return TypedResults.Ok();
+        return !host.TryStart(req, out var error) ? Task.FromResult<Results<Ok, BadRequest<string>, Conflict<string>>>(TypedResults.Conflict(error ?? "Failed to start")) : Task.FromResult<Results<Ok, BadRequest<string>, Conflict<string>>>(TypedResults.Ok());
     });
 
 app.MapPost("/simulation/stop", (SimulationHost host) =>
@@ -51,7 +47,7 @@ app.MapGet("/render/frame", (SimulationHost host, int w = 800, int h = 600, int 
     return Results.Ok(frame);
 });
 
-app.MapGet("/render/stream", async (HttpContext ctx, SimulationHost host, int w = 800, int h = 600, int tier = 0,
+app.MapGet("/render/stream", async void (HttpContext ctx, SimulationHost host, int w = 800, int h = 600, int tier = 0,
     bool bots = true, bool pods = true, bool stations = true, bool waypoints = false) =>
 {
     var options = new RenderOptions

@@ -41,9 +41,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RAWSimO.Core.Tests", "Tests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.Rendering2D", "RAWSimO.Rendering2D\RAWSimO.Rendering2D.csproj", "{280DC1B6-0568-4015-9D81-8A1CFE3DA09E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.AvaloniaClient", "RAWSimO.AvaloniaClient\RAWSimO.AvaloniaClient.csproj", "{098A2816-5D59-4572-8297-537908DB1749}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.Visualization2D", "RAWSimO.Visualization2D\RAWSimO.Visualization2D.csproj", "{098A2816-5D59-4572-8297-537908DB1749}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.WebApi", "RAWSimO.WebApi\RAWSimO.WebApi.csproj", "{6613AF71-E499-40E0-8A2A-1A3011C4380F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.WebServer", "RAWSimO.WebServer\RAWSimO.WebServer.csproj", "{6613AF71-E499-40E0-8A2A-1A3011C4380F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
