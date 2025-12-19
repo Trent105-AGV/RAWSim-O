@@ -1,22 +1,12 @@
 ﻿using RAWSimO.Core.Bots;
 using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Control;
 using RAWSimO.Core.Control.Shared;
 using RAWSimO.Core.Elements;
-using RAWSimO.Core.Geometrics;
-using RAWSimO.Core.Helper;
 using RAWSimO.Core.Items;
 using RAWSimO.Core.Management;
 using RAWSimO.Core.Statistics;
 using RAWSimO.Core.Waypoints;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 
 namespace RAWSimO.Core
 {

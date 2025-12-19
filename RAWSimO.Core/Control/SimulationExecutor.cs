@@ -1,14 +1,4 @@
-﻿using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Items;
-using RAWSimO.Core.Randomization;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Control
+﻿namespace RAWSimO.Core.Control
 {
     /// <summary>
     /// Used to execute simulation instances.

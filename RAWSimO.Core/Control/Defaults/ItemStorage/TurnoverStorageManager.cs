@@ -3,13 +3,9 @@ using RAWSimO.Core.Control.Shared;
 using RAWSimO.Core.Elements;
 using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
-using RAWSimO.Core.Metrics;
-using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Control.Defaults.ItemStorage
 {

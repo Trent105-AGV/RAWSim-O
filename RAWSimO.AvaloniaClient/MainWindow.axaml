@@ -1,0 +1,58 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:RAWSimO.AvaloniaClient"
+        x:Class="RAWSimO.AvaloniaClient.MainWindow"
+        Width="1100" Height="800"
+        Title="RAWSimO Avalonia Client">
+
+    <Grid RowDefinitions="Auto,*,200" ColumnDefinitions="380,*" Margin="10">
+
+        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
+            <TextBlock Text="Configuration" FontWeight="Bold" />
+
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+
+                <TextBox Grid.Row="0" Grid.Column="0" Name="InstancePathText" Watermark="Instance file path"
+                         Margin="0,0,6,6" />
+                <Button Grid.Row="0" Grid.Column="1" Content="Browse" Click="BrowseInstance_Click" Margin="0,0,0,6" />
+
+                <TextBox Grid.Row="1" Grid.Column="0" Name="SettingPathText" Watermark="Setting config path"
+                         Margin="0,0,6,6" />
+                <Button Grid.Row="1" Grid.Column="1" Content="Browse" Click="BrowseSetting_Click" Margin="0,0,0,6" />
+
+                <TextBox Grid.Row="2" Grid.Column="0" Name="ControlPathText" Watermark="Control config path"
+                         Margin="0,0,6,6" />
+                <Button Grid.Row="2" Grid.Column="1" Content="Browse" Click="BrowseControl_Click" Margin="0,0,0,6" />
+
+                <TextBox Grid.Row="3" Grid.Column="0" Name="StatisticsDirText" Watermark="Statistics output directory"
+                         Margin="0,0,6,6" />
+                <Button Grid.Row="3" Grid.Column="1" Content="Browse" Click="BrowseStatisticsDir_Click"
+                        Margin="0,0,0,6" />
+
+                <TextBox Grid.Row="4" Grid.Column="0" Name="ResourceDirText" Watermark="Resource directory (optional)"
+                         Margin="0,0,6,6" />
+                <Button Grid.Row="4" Grid.Column="1" Content="Browse" Click="BrowseResourceDir_Click"
+                        Margin="0,0,0,6" />
+
+                <TextBox Grid.Row="5" Grid.Column="0" Name="SeedText" Watermark="Seed" Text="1" Margin="0,0,6,0" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                <Button Name="StartButton" Content="Start" Click="Start_Click" />
+                <Button Name="StopButton" Content="Stop" IsEnabled="False" Click="Stop_Click" />
+                <TextBlock Name="StatusText" VerticalAlignment="Center" Text="Idle" />
+            </StackPanel>
+
+            <TextBlock Name="SimTimeText" Text="Time: -" />
+        </StackPanel>
+
+        <Border Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" BorderThickness="1" Padding="4">
+            <local:SimulationView Name="SimView" />
+        </Border>
+
+        <TextBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Name="LogText" IsReadOnly="True" TextWrapping="Wrap"
+                 AcceptsReturn="True" />
+
+    </Grid>
+</Window>
+

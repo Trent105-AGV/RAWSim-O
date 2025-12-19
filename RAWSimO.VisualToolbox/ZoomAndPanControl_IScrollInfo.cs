@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Controls;
-
-namespace RAWSimO.VisualToolbox
+﻿namespace RAWSimO.VisualToolbox
 {
     /// <summary>
     /// This is an extension to the ZoomAndPanControol class that implements

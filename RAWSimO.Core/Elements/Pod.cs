@@ -1,5 +1,4 @@
 ﻿using RAWSimO.Core.Geometrics;
-using RAWSimO.Core.Helper;
 using RAWSimO.Core.Info;
 using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
@@ -9,9 +8,6 @@ using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Elements
 {

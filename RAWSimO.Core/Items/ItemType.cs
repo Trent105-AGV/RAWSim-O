@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Items
+﻿namespace RAWSimO.Core.Items
 {
     /// <summary>
     /// The different item types that are supported by this framework.

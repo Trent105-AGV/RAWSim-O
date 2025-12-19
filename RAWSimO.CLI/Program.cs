@@ -1,7 +1,4 @@
 ﻿using RAWSimO.Core;
-using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Generator;
-using RAWSimO.Core.Interfaces;
 using RAWSimO.Core.IO;
 using RAWSimO.Core.Randomization;
 using RAWSimO.Core.Control;
@@ -9,10 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Threading;
-using System.Globalization;
 
 namespace RAWSimO.CLI
 {

@@ -5,14 +5,10 @@ using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
 using RAWSimO.Core.Metrics;
 using RAWSimO.Core.Randomization;
-using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Generator
 {

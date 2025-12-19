@@ -2,17 +2,6 @@
 using RAWSimO.Hardware.Blink1Hardware;
 using RAWSimO.Hardware.RFID;
 using RAWSimO.Hardware.RobotHardware;
-using Emgu.CV;
-using Emgu.CV.Structure;
-using Emgu.CV.UI;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Media;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Hardware.RobotControl
 {

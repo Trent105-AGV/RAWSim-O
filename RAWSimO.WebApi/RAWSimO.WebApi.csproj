@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Configurations>Debug;Release;XPlat;XPlatRelease</Configurations>
+    <Platforms>AnyCPU</Platforms>
+    <LangVersion>default</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RAWSimO.Core\RAWSimO.Core.csproj" />
+    <ProjectReference Include="..\RAWSimO.Rendering2D\RAWSimO.Rendering2D.csproj" />
+  </ItemGroup>
+
+</Project>

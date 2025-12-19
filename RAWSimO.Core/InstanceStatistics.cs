@@ -1,20 +1,13 @@
 ﻿using RAWSimO.Core.Bots;
 using RAWSimO.Core.Control;
-using RAWSimO.Core.Elements;
 using RAWSimO.Core.IO;
-using RAWSimO.Core.Items;
-using RAWSimO.Core.Management;
 using RAWSimO.Core.Statistics;
 using RAWSimO.Core.Waypoints;
-using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using RAWSimO.Core.Metrics;
 using static RAWSimO.Core.Statistics.StationTripDatapoint;
 
 namespace RAWSimO.Core

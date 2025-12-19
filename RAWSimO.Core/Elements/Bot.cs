@@ -1,21 +1,13 @@
 ﻿using RAWSimO.Core.Control;
 using RAWSimO.Core.Bots;
 using RAWSimO.Core.Geometrics;
-using RAWSimO.Core.Helper;
 using RAWSimO.Core.Info;
 using RAWSimO.Core.Interfaces;
-using RAWSimO.Core.IO;
-using RAWSimO.Core.Management;
 using RAWSimO.Core.Waypoints;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Serialization;
-using RAWSimO.MultiAgentPathFinding;
 using RAWSimO.Toolbox;
 
 namespace RAWSimO.Core.Elements

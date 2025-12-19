@@ -9,9 +9,6 @@ using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static RAWSimO.Core.Control.RepositioningManager;
 
 namespace RAWSimO.Core.Control
 {

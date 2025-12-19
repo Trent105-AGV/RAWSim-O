@@ -1,19 +1,8 @@
 ﻿using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Bots;
-using RAWSimO.Core.Elements;
-using RAWSimO.Core.Interfaces;
-using RAWSimO.Core.Items;
 using RAWSimO.Core.Management;
 using RAWSimO.Core.Randomization;
 using RAWSimO.Core.Control;
-using RAWSimO.Core.Waypoints;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RAWSimO.Core.IO;
 
 namespace RAWSimO.Core.Generator
 {
@@ -63,7 +52,6 @@ namespace RAWSimO.Core.Generator
         /// <summary>
         /// Generates the pico default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -84,10 +72,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the nano default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -108,10 +96,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the micro default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -132,10 +120,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the milli default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -156,10 +144,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the centi default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -180,10 +168,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the deca default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -204,10 +192,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the hecto default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -228,10 +216,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the kilo default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -252,10 +240,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the mega default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -276,10 +264,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the giga default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -308,7 +296,6 @@ namespace RAWSimO.Core.Generator
         /// <summary>
         /// Generates the tiny default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -329,10 +316,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the tiny default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -353,10 +340,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the tiny default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -377,10 +364,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the tiny default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>
@@ -401,10 +388,10 @@ namespace RAWSimO.Core.Generator
             layoutConfiguration.NReplenishmentStationNorth = 0;
             return GenerateLayout(layoutConfiguration, settingConfig, controlConfig);
         }
+
         /// <summary>
         /// Generates the tiny default layout.
         /// </summary>
-        /// <param name="rand">A randomizer that is used during generation.</param>
         /// <param name="settingConfig">The configuration for the setting to emulate that will be attached for executing the simulation afterwards.</param>
         /// <param name="controlConfig">The configuration for the controlling mechanisms that will be attached for executing the simulation afterwards.</param>
         /// <returns>The generated instance.</returns>

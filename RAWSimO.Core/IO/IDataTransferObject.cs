@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.IO
+﻿namespace RAWSimO.Core.IO
 {
     /// <summary>
     /// Defines the basic functionality of a DTO wrapper for an object.

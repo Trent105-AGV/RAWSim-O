@@ -1,11 +1,4 @@
-﻿using RAWSimO.Toolbox;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.MultiAgentPathFinding.Elements
+﻿namespace RAWSimO.MultiAgentPathFinding.Elements
 {
     /// <summary>
     /// Contains information about a node resembling a waypoint.

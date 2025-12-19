@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Configurations
+﻿namespace RAWSimO.Core.Configurations
 {
     /// <summary>
     /// Exposes values that override other given values.

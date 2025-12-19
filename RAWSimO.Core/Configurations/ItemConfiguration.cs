@@ -1,12 +1,6 @@
 ﻿using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Configurations
 {

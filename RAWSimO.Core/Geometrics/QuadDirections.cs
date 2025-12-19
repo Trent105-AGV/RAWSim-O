@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Geometrics
+﻿namespace RAWSimO.Core.Geometrics
 {
     /// <summary>
     /// Defines the different sectors of a <code>QuadNode</code>.

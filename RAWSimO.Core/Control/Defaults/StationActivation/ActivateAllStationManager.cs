@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Control.Defaults.StationActivation
+﻿namespace RAWSimO.Core.Control.Defaults.StationActivation
 {
     /// <summary>
     /// A station activation controller that simply keeps all stations active over time.

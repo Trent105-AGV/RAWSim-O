@@ -1,11 +1,4 @@
 ﻿using RAWSimO.Core.Items;
-using RAWSimO.Core.Management;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
 
 namespace RAWSimO.Visualization.Rendering
 {

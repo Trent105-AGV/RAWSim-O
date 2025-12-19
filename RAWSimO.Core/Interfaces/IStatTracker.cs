@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RAWSimO.Core.Interfaces
+﻿namespace RAWSimO.Core.Interfaces
 {
     /// <summary>
     /// Functionality to implement for an element that tracks statistics during a simulation.

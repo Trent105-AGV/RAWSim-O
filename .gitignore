@@ -11,3 +11,4 @@ packages/
 .vs/
 .idea/
 publish/
+out/

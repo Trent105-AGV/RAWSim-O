@@ -1,21 +1,5 @@
 ﻿using RAWSimO.Core.Configurations;
 using RAWSimO.Core.IO;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Threading;
-using System.Xml;
-using System.Xml.Serialization;
 
 namespace RAWSimO.Visualization
 {

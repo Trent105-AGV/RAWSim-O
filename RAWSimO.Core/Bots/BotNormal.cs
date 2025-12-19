@@ -7,12 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using RAWSimO.Core.Interfaces;
 using RAWSimO.Core.Info;
-using RAWSimO.Core.Items;
 using RAWSimO.Core.Geometrics;
 using RAWSimO.MultiAgentPathFinding.Physic;
 using System.Diagnostics;
 using System.Text;
-using RAWSimO.Core.IO;
 using RAWSimO.Core.Metrics;
 using RAWSimO.Toolbox;
 

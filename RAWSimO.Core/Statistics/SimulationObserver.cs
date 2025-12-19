@@ -1,5 +1,4 @@
 ﻿using RAWSimO.Core.Control;
-using RAWSimO.Core.Elements;
 using RAWSimO.Core.Interfaces;
 using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
@@ -11,8 +10,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Statistics
 {

@@ -1,5 +1,4 @@
-﻿using RAWSimO.Core;
-using RAWSimO.Core.Geometrics;
+﻿using RAWSimO.Core.Geometrics;
 using RAWSimO.Core.IO;
 using RAWSimO.Core.Statistics;
 using RAWSimO.Toolbox;
@@ -8,7 +7,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace RAWSimO.DataPreparation

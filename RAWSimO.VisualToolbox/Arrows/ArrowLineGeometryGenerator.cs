@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
-
-namespace RAWSimO.VisualToolbox.Arrows
+﻿namespace RAWSimO.VisualToolbox.Arrows
 {
     /// <summary>
     /// Enables the generation of arrow line geometries.

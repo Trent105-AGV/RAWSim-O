@@ -1,18 +1,6 @@
 ﻿using RAWSimO.Core.Info;
-using RAWSimO.Core.IO;
 using RAWSimO.Toolbox;
 using RAWSimO.VisualToolbox.Arrows;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace RAWSimO.Visualization.Rendering
 {

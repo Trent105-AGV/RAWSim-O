@@ -5,10 +5,7 @@ using RAWSimO.Core.Metrics;
 using RAWSimO.Core.Waypoints;
 using RAWSimO.Toolbox;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Control.Shared
 {

@@ -1,20 +1,12 @@
-﻿using RAWSimO.Core;
-using RAWSimO.Core.Configurations;
-using RAWSimO.Core.Generator;
-using RAWSimO.Core.IO;
-using RAWSimO.Core.Randomization;
-using RAWSimO.Playground.Generators;
-using RAWSimO.Playground.Tests;
+﻿using RAWSimO.Playground.Generators;
 using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace RAWSimO.Playground
 {
