@@ -9,11 +9,12 @@ namespace RAWSimO.CommFramework
     public class WaypointManager
     {
         private Dictionary<int, DTOWaypoint> _waypoints;
+        // ReSharper disable once NotAccessedField.Local
         private Dictionary<DTOWaypoint, int> _waypointsReverse;
         private Dictionary<DTOWaypoint, HashSet<DTOWaypoint>> _connections;
         private Dictionary<string, int> _rfidTranslations;
         private Dictionary<int, string> _waypointTranslations;
-        private Action<string> _infoOutput;
+        private readonly Action<string> _infoOutput;
 
         public WaypointManager(string waypointFilePath, string dictionaryFilePath, Action<string> outputFunction)
         {
@@ -57,17 +58,18 @@ namespace RAWSimO.CommFramework
         /// <summary>
         /// Used to store the search tree of A*.
         /// </summary>
-        private class WaypointSearchData
+        private class WaypointSearchData(
+            double distanceTraveled,
+            double distanceToGoal,
+            DTOWaypoint waypoint,
+            WaypointSearchData parentMove,
+            int depth)
         {
-            public WaypointSearchData(double distanceTraveled, double distanceToGoal, DTOWaypoint waypoint, WaypointSearchData parentMove, int depth)
-            {
-                DistanceTraveled = distanceTraveled; DistanceToGoal = distanceToGoal; Waypoint = waypoint; ParentMove = parentMove; Depth = depth;
-            }
-            public double DistanceTraveled;
-            public double DistanceToGoal;
-            public DTOWaypoint Waypoint;
-            public int Depth;
-            public WaypointSearchData ParentMove;
+            public readonly double DistanceTraveled = distanceTraveled;
+            public readonly double DistanceToGoal = distanceToGoal;
+            public readonly DTOWaypoint Waypoint = waypoint;
+            public readonly int Depth = depth;
+            public readonly WaypointSearchData ParentMove = parentMove;
         }
 
         /// <summary>
@@ -198,12 +200,11 @@ namespace RAWSimO.CommFramework
         {
             // Parse all entries in the file
             Output("Reading dictionary file: " + filePath);
-            List<Tuple<int, string>> entries = new List<Tuple<int, string>>();
-            using (StreamReader sr = new StreamReader(filePath))
+            var entries = new List<Tuple<int, string>>();
+            using (var sr = new StreamReader(filePath))
             {
                 // Read all lines
-                string line = "";
-                while ((line = sr.ReadLine()) != null)
+                while (sr.ReadLine() is { } line)
                 {
                     // Ignore empty or comment lines
                     if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))

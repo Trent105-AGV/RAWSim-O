@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -43,8 +42,11 @@ public partial class MainWindow : Window
 
         _userSettings = ClientUserSettings.Load();
 
+        if (!string.IsNullOrWhiteSpace(_userSettings.LastResourceDirectory))
+            ResourceDirText.Text = _userSettings.LastResourceDirectory;
+
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
-        _uiTimer.Tick += (_, __) =>
+        _uiTimer.Tick += (_, _) =>
         {
             if (_instance != null)
                 SimTimeText.Text = "Time: " +
@@ -124,13 +126,15 @@ public partial class MainWindow : Window
         MimeTypes = new[] { "application/xml", "text/xml" },
     };
 
-    private static readonly FilePickerFileType InstanceOrLayoutFileType = new("RAWSimO Instance/Layout (*.xinst, *.xlayo)")
-    {
-        Patterns = new[] { "*.xinst", "*.xlayo", "*.xml" },
-        MimeTypes = new[] { "application/xml", "text/xml" },
-    };
+    private static readonly FilePickerFileType InstanceOrLayoutFileType =
+        new("RAWSimO Instance/Layout (*.xinst, *.xlayo)")
+        {
+            Patterns = new[] { "*.xinst", "*.xlayo", "*.xml" },
+            MimeTypes = new[] { "application/xml", "text/xml" },
+        };
 
-    private async Task<string> PickFileAsync(string title, string suggestedDirectory, IReadOnlyList<FilePickerFileType> fileTypeFilter)
+    private async Task<string> PickFileAsync(string title, string suggestedDirectory,
+        IReadOnlyList<FilePickerFileType> fileTypeFilter)
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel?.StorageProvider == null)
@@ -139,7 +143,7 @@ public partial class MainWindow : Window
         var suggested = await TryGetSuggestedStartFolderAsync(suggestedDirectory);
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(
-            new Avalonia.Platform.Storage.FilePickerOpenOptions
+            new FilePickerOpenOptions
             {
                 Title = title,
                 AllowMultiple = false,
@@ -161,7 +165,8 @@ public partial class MainWindow : Window
         return pickedPath;
     }
 
-    private async Task<string> PickFolderAsync(string title, string suggestedDirectory)
+    private async Task<string> PickFolderAsync(string title, string suggestedDirectory,
+        Action<string> rememberPickedPath)
     {
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel?.StorageProvider == null)
@@ -170,7 +175,7 @@ public partial class MainWindow : Window
         var suggested = await TryGetSuggestedStartFolderAsync(suggestedDirectory);
 
         var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
-            new Avalonia.Platform.Storage.FolderPickerOpenOptions
+            new FolderPickerOpenOptions
             {
                 Title = title,
                 AllowMultiple = false,
@@ -180,7 +185,7 @@ public partial class MainWindow : Window
         var pickedPath = folders.FirstOrDefault()?.TryGetLocalPath();
         if (!string.IsNullOrWhiteSpace(pickedPath))
         {
-            _userSettings.LastStatisticsDirectory = pickedPath;
+            rememberPickedPath?.Invoke(pickedPath);
             _userSettings.Save();
         }
 
@@ -230,7 +235,7 @@ public partial class MainWindow : Window
         var path = await PickFileAsync(
             "Select control config file",
             _userSettings.LastConfigDirectory,
-            new[] { ControlFileType });
+            [ControlFileType]);
         if (string.IsNullOrWhiteSpace(path))
             return;
 
@@ -246,48 +251,82 @@ public partial class MainWindow : Window
 
     private async void BrowseStatisticsDir_Click(object sender, RoutedEventArgs e)
     {
-        var path = await PickFolderAsync("Select statistics output folder", _userSettings.LastStatisticsDirectory);
+        var path = await PickFolderAsync(
+            "Select statistics output folder",
+            _userSettings.LastStatisticsDirectory,
+            picked => _userSettings.LastStatisticsDirectory = picked);
         if (!string.IsNullOrWhiteSpace(path))
             StatisticsDirText.Text = path;
     }
 
-    private bool ValidateSelectedConfigFiles(string instancePath, string settingPath, string controlPath, out string error)
+    private async void BrowseResourceDir_Click(object sender, RoutedEventArgs e)
     {
+        var path = await PickFolderAsync(
+            "Select resource directory",
+            _userSettings.LastResourceDirectory,
+            picked => _userSettings.LastResourceDirectory = picked);
+
+        if (!string.IsNullOrWhiteSpace(path))
+            ResourceDirText.Text = path;
+    }
+
+    private static bool TryNormalizeAndValidateSelectedConfigFiles(
+        ref string instancePath,
+        ref string settingPath,
+        ref string controlPath,
+        out string info,
+        out string error)
+    {
+        info = null;
         error = null;
 
         var instanceRoot = TryReadXmlRootElementName(instancePath);
         if (instanceRoot != nameof(Instance) && instanceRoot != nameof(LayoutConfiguration))
         {
-            error = $"Instance/layout file root element must be '{nameof(Instance)}' or '{nameof(LayoutConfiguration)}' (got '{instanceRoot ?? "unknown"}').";
+            error =
+                $"Instance/layout file root element must be '{nameof(Instance)}' or '{nameof(LayoutConfiguration)}' (got '{instanceRoot ?? "unknown"}').";
             return false;
         }
 
         var settingRoot = TryReadXmlRootElementName(settingPath);
+        var controlRoot = TryReadXmlRootElementName(controlPath);
+
+        // Auto-correct common mistake: the user swapped setting/control files.
+        if (settingRoot == nameof(ControlConfiguration) && controlRoot == nameof(SettingConfiguration))
+        {
+            (settingPath, controlPath) = (controlPath, settingPath);
+            (settingRoot, controlRoot) = (controlRoot, settingRoot);
+            info = "Detected swapped setting/control configuration files and auto-corrected them.";
+        }
+
         if (settingRoot != nameof(SettingConfiguration))
         {
-            error = $"Setting config root element must be '{nameof(SettingConfiguration)}' (got '{settingRoot ?? "unknown"}').";
+            error =
+                $"Setting config root element must be '{nameof(SettingConfiguration)}' (got '{settingRoot ?? "unknown"}').";
             return false;
         }
 
-        var controlRoot = TryReadXmlRootElementName(controlPath);
         if (controlRoot != nameof(ControlConfiguration))
         {
-            error = $"Control config root element must be '{nameof(ControlConfiguration)}' (got '{controlRoot ?? "unknown"}').";
+            error =
+                $"Control config root element must be '{nameof(ControlConfiguration)}' (got '{controlRoot ?? "unknown"}').";
             return false;
         }
 
+        info ??=
+            $"Config roots OK: instance/layout='{instanceRoot}', setting='{settingRoot}', control='{controlRoot}'.";
         return true;
     }
 
-    private async void Start_Click(object sender, RoutedEventArgs e)
+    private void Start_Click(object sender, RoutedEventArgs e)
     {
-        if (_runTask != null && !_runTask.IsCompleted)
-            return;
+        if (_runTask is { IsCompleted: false }) return;
 
         var instancePath = InstancePathText.Text ?? string.Empty;
         var settingPath = SettingPathText.Text ?? string.Empty;
         var controlPath = ControlPathText.Text ?? string.Empty;
         var statisticsDir = StatisticsDirText.Text ?? string.Empty;
+        var resourceDir = ResourceDirText.Text ?? string.Empty;
 
         if (!int.TryParse(SeedText.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seed))
         {
@@ -302,7 +341,25 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!ValidateSelectedConfigFiles(instancePath, settingPath, controlPath, out var validationError))
+        if (!string.IsNullOrWhiteSpace(resourceDir) && !Directory.Exists(resourceDir))
+        {
+            StatusText.Text = "Invalid resource directory";
+            LogLine($"Resource directory does not exist: '{resourceDir}'");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(resourceDir))
+        {
+            _userSettings.LastResourceDirectory = resourceDir;
+            _userSettings.Save();
+        }
+
+        if (!TryNormalizeAndValidateSelectedConfigFiles(
+                ref instancePath,
+                ref settingPath,
+                ref controlPath,
+                out var validationInfo,
+                out var validationError))
         {
             StatusText.Text = "Invalid configuration";
             LogLine(validationError);
@@ -316,9 +373,17 @@ public partial class MainWindow : Window
             LogLine("<<< Welcome to the RAWSimO Avalonia Client >>>");
             LogLine("The time is: " + DateTime.Now.ToString(IOConstants.FORMATTER));
 
+            LogLine(validationInfo);
+            LogLine($"Paths: instance/layout='{instancePath}', setting='{settingPath}', control='{controlPath}'");
+
             Action<string> logAction = LogLine;
 
-            _instance = InstanceIO.ReadInstance(instancePath, settingPath, controlPath, logAction: logAction);
+            _instance = InstanceIO.ReadInstance(
+                instancePath,
+                settingPath,
+                controlPath,
+                logAction: logAction,
+                additionalResourceDirectory: string.IsNullOrWhiteSpace(resourceDir) ? null : resourceDir);
             _instance.SettingConfig.LogAction = logAction;
             _instance.SettingConfig.Seed = seed;
             _instance.Randomizer = new RandomizerSimple(seed);
@@ -372,7 +437,7 @@ public partial class MainWindow : Window
 
     private static void StepUpdate(Instance instance, double totalTime, CancellationToken token)
     {
-        var step = 0.05; // seconds
+        const double step = 0.05; // seconds
         var remaining = totalTime;
 
         while (remaining > 0)
@@ -409,6 +474,7 @@ public partial class MainWindow : Window
             }
             catch
             {
+                // ignored
             }
 
             LogLine(">>> Stopped by user");

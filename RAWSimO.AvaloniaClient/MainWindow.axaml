@@ -10,7 +10,7 @@
         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
             <TextBlock Text="Configuration" FontWeight="Bold" />
 
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
 
                 <TextBox Grid.Row="0" Grid.Column="0" Name="InstancePathText" Watermark="Instance file path"
                          Margin="0,0,6,6" />
@@ -29,7 +29,12 @@
                 <Button Grid.Row="3" Grid.Column="1" Content="Browse" Click="BrowseStatisticsDir_Click"
                         Margin="0,0,0,6" />
 
-                <TextBox Grid.Row="4" Grid.Column="0" Name="SeedText" Watermark="Seed" Text="1" Margin="0,0,6,0" />
+                <TextBox Grid.Row="4" Grid.Column="0" Name="ResourceDirText" Watermark="Resource directory (optional)"
+                         Margin="0,0,6,6" />
+                <Button Grid.Row="4" Grid.Column="1" Content="Browse" Click="BrowseResourceDir_Click"
+                        Margin="0,0,0,6" />
+
+                <TextBox Grid.Row="5" Grid.Column="0" Name="SeedText" Watermark="Seed" Text="1" Margin="0,0,6,0" />
             </Grid>
 
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
