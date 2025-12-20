@@ -14,7 +14,7 @@ public sealed class SimulationView : Control
 
     public Instance Instance { get; set; }
 
-    public RAWSimO.Rendering2D.RenderOptions Options { get; set; }
+    public Rendering2D.RenderOptions Options { get; set; }
 
     private readonly Dictionary<RenderColor, IBrush> _brushCache = new();
 
