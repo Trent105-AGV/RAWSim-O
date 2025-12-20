@@ -31,7 +31,7 @@ public sealed class SimulationHostController : ControllerBase
 	}
 
 	[HttpPost]
-	public async Task<IActionResult> StartSimulation([FromBody] StartRequest request)
+	public async Task<IActionResult> StartSimulation(StartRequest request)
 	{
 		return Ok(await _hostService.StartSimulation(request));
 	}
@@ -55,7 +55,7 @@ public sealed class SimulationHostController : ControllerBase
 	}
 
 	[HttpPost]
-	public async Task<IActionResult> GetLatestFrame([FromBody] RenderFrameRequest request)
+	public async Task<IActionResult> GetLatestFrame(RenderFrameRequest request)
 	{
 		return Ok(await _hostService.GetLatestFrame(request));
 	}

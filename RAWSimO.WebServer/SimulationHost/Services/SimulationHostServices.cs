@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Xml;
 using MagicOnion;
 using MagicOnion.Server;
 using Microsoft.AspNetCore.SignalR;
@@ -20,6 +21,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 {
     private readonly Lock _gate = new();
     private readonly Simulation2DCommandBuilder _renderer = new();
+
+    private string? _runInputDirectory;
 
     private CancellationTokenSource? _cts;
     private Task? _runTask;
@@ -93,14 +96,24 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             _latestFrame = null;
             _isPaused = false;
 
+            // Clean up previous run inputs if any (only used for inline-content mode).
+            TryDeleteDirectory(_runInputDirectory);
+            _runInputDirectory = null;
+
             _cts = new CancellationTokenSource();
 
             try
             {
                 Action<string> logAction = Console.WriteLine;
 
-                var instance = InstanceIO.ReadInstance(request.Instance, request.Setting, request.ControlConfig,
-                    logAction: logAction);
+                var resolved = ResolveInputs(request);
+
+                var instance = InstanceIO.ReadInstance(
+                    resolved.InstancePath,
+                    resolved.SettingPath,
+                    resolved.ControlConfigPath,
+                    logAction: logAction,
+                    additionalResourceDirectory: resolved.AdditionalResourceDirectory);
                 instance.SettingConfig.LogAction = logAction;
 
                 var seed = request.Seed ?? instance.SettingConfig.Seed;
@@ -119,6 +132,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 _ = new StreamWriter(logPath, append: false) { AutoFlush = true };
 
                 _instance = instance;
+
+                _runInputDirectory = resolved.RunInputDirectory;
 
                 startNotification = new StartSimulationNotification(
                     Instance: request.Instance,
@@ -142,6 +157,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 _cts?.Dispose();
                 _cts = null;
                 _runTask = null;
+                TryDeleteDirectory(_runInputDirectory);
+                _runInputDirectory = null;
                 var errResp = new StartResponse(ESimulationStartResult.UnknownError, ex.Message);
                 return UnaryResult.FromResult(errResp);
             }
@@ -151,6 +168,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     public UnaryResult<bool> EndSimulation()
     {
         CancellationTokenSource? cts;
+        Task? runTask;
+        string? runInputDirectory;
         double simTime;
         string? error;
 
@@ -158,9 +177,15 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         {
             cts = _cts;
 
+            runTask = _runTask;
+            runInputDirectory = _runInputDirectory;
+
             simTime = _instance?.Controller?.CurrentTime ?? 0;
             error = _lastError?.ToString();
             _isPaused = false;
+
+            // Let the cleanup happen after the run loop stops.
+            _runInputDirectory = null;
         }
 
         try
@@ -175,7 +200,103 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         var endNotification = new EndSimulationNotification(simTime, error, DateTimeOffset.UtcNow);
         _ = SafeBroadcast(() => hub.Clients.All.EndSimulation(endNotification));
 
+        if (!string.IsNullOrWhiteSpace(runInputDirectory))
+        {
+            if (runTask is not null)
+            {
+                _ = runTask.ContinueWith(_ => TryDeleteDirectory(runInputDirectory));
+            }
+            else
+            {
+                TryDeleteDirectory(runInputDirectory);
+            }
+        }
+
         return UnaryResult.FromResult(true);
+    }
+
+    private sealed record ResolvedInputs(
+        string InstancePath,
+        string SettingPath,
+        string ControlConfigPath,
+        string AdditionalResourceDirectory,
+        string RunInputDirectory
+    );
+
+    private static ResolvedInputs ResolveInputs(StartRequest request)
+    {
+        // Always treat the incoming values as inline file contents.
+        var runDir = Path.Combine(Path.GetTempPath(), "RAWSimO.WebServer", "inputs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(runDir);
+
+        var instanceFile = GuessInstanceFileName(request.Instance);
+        const string settingFile = "setting.xsett";
+        const string controlFile = "control.xconf";
+
+        var instancePath = Path.Combine(runDir, instanceFile);
+        var settingPath = Path.Combine(runDir, settingFile);
+        var controlPath = Path.Combine(runDir, controlFile);
+
+        File.WriteAllText(instancePath, request.Instance, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.WriteAllText(settingPath, request.Setting, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.WriteAllText(controlPath, request.ControlConfig, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+        return new ResolvedInputs(
+            InstancePath: instancePath,
+            SettingPath: settingPath,
+            ControlConfigPath: controlPath,
+            AdditionalResourceDirectory: runDir,
+            RunInputDirectory: runDir
+        );
+    }
+
+    private static string GuessInstanceFileName(string content)
+    {
+        // Prefer the canonical extensions used by RAWSimO docs.
+        // Content is expected to be XML (custom extensions like .xinst/.xlayo), but we fall back safely.
+        try
+        {
+            using var sr = new StringReader(content);
+            var settings = new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                IgnoreComments = true,
+                IgnoreWhitespace = true
+            };
+            using var xr = XmlReader.Create(sr, settings);
+
+            while (xr.Read())
+            {
+                if (xr.NodeType != XmlNodeType.Element)
+                    continue;
+
+                return xr.Name == "LayoutConfiguration"
+                    ? "layout.xlayo"
+                    : "instance.xinst";
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return "instance.xinst";
+    }
+
+    private static void TryDeleteDirectory(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+            return;
+
+        try
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
+        catch
+        {
+            // ignore
+        }
     }
 
     public UnaryResult<bool> PauseSimulation()

@@ -8,8 +8,7 @@ public enum ESimulationStartResult
 {
     Success = 0,
     AlreadyRunning = 1,
-    InstanceNotFound = 2,
-    InvalidConfiguration = 3,
+    InvalidConfiguration = 2,
     UnknownError = 999
 }
 
