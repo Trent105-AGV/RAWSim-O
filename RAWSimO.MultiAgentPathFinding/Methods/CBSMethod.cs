@@ -3,15 +3,16 @@ using RAWSimO.MultiAgentPathFinding.DataStructures;
 using RAWSimO.MultiAgentPathFinding.Elements;
 using RAWSimO.MultiAgentPathFinding.Toolbox;
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace RAWSimO.MultiAgentPathFinding.Methods
 {
-
     /// <summary>
     /// Conflict-based for optimal multi-agent pathﬁnding, Sharon 2015
     /// </summary>
+    // ReSharper disable once InconsistentNaming
     public class CBSMethod : PathFinder
     {
         /// <summary>
@@ -22,24 +23,24 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
         /// <summary>
         /// The reservation table for finding a way through constraints
         /// </summary>
-        private ReservationTable _reservationTable;
+        private readonly ReservationTable _reservationTable;
 
         /// <summary>
         /// The reservation table for collision detection
         /// </summary>
-        ReservationTable _agentReservationTable;
+        private ReservationTable _agentReservationTable;
 
         /// <summary>
         /// Lambda Express for node selection
         /// </summary>
         /// <param name="node">The node.</param>
         /// <returns></returns>
-        delegate double NodeSelectionExpression(ConflictTree.Node node);
+        private delegate double NodeSelectionExpression(ConflictTree.Node node);
 
         /// <summary>
         /// The deadlock handler
         /// </summary>
-        private DeadlockHandler _deadlockHandler;
+        private readonly DeadlockHandler _deadlockHandler;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FARMethod"/> class.
@@ -53,7 +54,7 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
             if (graph.BackwardEdges == null)
                 graph.GenerateBackwardEgdes();
             _reservationTable = new ReservationTable(graph);
-            _agentReservationTable = new ReservationTable(graph, false, true, false);
+            _agentReservationTable = new ReservationTable(graph, false, true);
             _deadlockHandler = new DeadlockHandler(graph, seed);
         }
 
@@ -68,11 +69,9 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
 
             //initialization data structures
             var conflictTree = new ConflictTree();
-            var Open = new FibonacciHeap<double, ConflictTree.Node>();
+            var open = new FibonacciHeap<double, ConflictTree.Node>();
             var solvable = true;
-            var generatedNodes = 0;
-            ConflictTree.Node bestNode = null;
-            double bestTime = 0.0;
+            var bestTime = 0.0;
 
             //deadlock handling
             _deadlockHandler.LengthOfAWaitStep = LengthOfAWaitStep;
@@ -92,49 +91,49 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
                 if (!agentSolved)
                 {
                     if (unsolvableAgents == null)
-                        unsolvableAgents = new List<Agent>() { agent };
+                        unsolvableAgents = [agent];
                     else
                         unsolvableAgents.Add(agent);
                 }
+
                 solvable = solvable && agentSolved;
             }
 
             //node selection strategy (Queue will pick the node with minimum value
             NodeSelectionExpression nodeObjectiveSelector = node =>
             {
-                switch (SearchMethod)
+                return SearchMethod switch
                 {
-                    case CBSSearchMethod.BestFirst:
-                        return node.SolutionCost;
-                    case CBSSearchMethod.BreathFirst:
-                        return node.Depth;
-                    case CBSSearchMethod.DepthFirst:
-                        return (-1) * node.Depth;
-                    default:
-                        return 0;
-                }
+                    CBSSearchMethod.BestFirst => node.SolutionCost,
+                    CBSSearchMethod.BreathFirst => node.Depth,
+                    CBSSearchMethod.DepthFirst => (-1) * node.Depth,
+                    _ => 0
+                };
             };
 
             //Enqueue first node
             if (solvable)
-                Open.Enqueue(conflictTree.Root.SolutionCost, conflictTree.Root);
+                open.Enqueue(conflictTree.Root.SolutionCost, conflictTree.Root);
             else
-                Communicator.LogDefault("WARNING! Aborting CBS - could not obtain an initial solution for the following agents: " +
-                    string.Join(",", unsolvableAgents.Select(a => "Agent" + a.ID.ToString() + "(" + a.NextNode.ToString() + "->" + a.DestinationNode.ToString() + ")")));
-            bestNode = conflictTree.Root;
+                Communicator.LogDefault(
+                    "WARNING! Aborting CBS - could not obtain an initial solution for the following agents: " +
+                    string.Join(",",
+                        unsolvableAgents.Select(a =>
+                            "Agent" + a.ID.ToString() + "(" + a.NextNode.ToString() + "->" +
+                            a.DestinationNode.ToString() + ")")));
+            var bestNode = conflictTree.Root;
 
             //search loop
             ConflictTree.Node p = conflictTree.Root;
-            while (Open.Count > 0)
+            while (open.Count > 0)
             {
-
                 //local variables
                 int agentId1;
                 int agentId2;
                 ReservationTable.Interval interval;
 
                 //pop out best node
-                p = Open.Dequeue().Value;
+                p = open.Dequeue().Value;
 
                 //check the path
                 var hasNoConflicts = ValidatePath(p, agents, out agentId1, out agentId2, out interval);
@@ -147,7 +146,8 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
                 }
 
                 // time up? => return the best solution
-                if (Stopwatch.ElapsedMilliseconds / 1000.0 > RuntimeLimitPerAgent * agents.Count * 0.9 || Stopwatch.ElapsedMilliseconds / 1000.0 > RunTimeLimitOverall)
+                if (Stopwatch.ElapsedMilliseconds / 1000.0 > RuntimeLimitPerAgent * agents.Count * 0.9 ||
+                    Stopwatch.ElapsedMilliseconds / 1000.0 > RunTimeLimitOverall)
                 {
                     Communicator.SignalTimeout();
                     break;
@@ -164,16 +164,13 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
                 var node1 = new ConflictTree.Node(agentId1, interval, p);
                 solvable = Solve(node1, currentTime, agents.First(a => a.ID == agentId1));
                 if (solvable)
-                    Open.Enqueue(node1.SolutionCost, node1);
+                    open.Enqueue(node1.SolutionCost, node1);
 
                 //append child 2
                 var node2 = new ConflictTree.Node(agentId2, interval, p);
                 solvable = Solve(node2, currentTime, agents.First(a => a.ID == agentId2));
                 if (solvable)
-                    Open.Enqueue(node2.SolutionCost, node2);
-
-                generatedNodes += 2;
-
+                    open.Enqueue(node2.SolutionCost, node2);
             }
 
             //return the solution => suboptimal
@@ -185,7 +182,8 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
             }
         }
 
-        private bool ValidatePath(ConflictTree.Node node, List<Agent> agents, out int agentId1, out int agentId2, out ReservationTable.Interval interval)
+        private bool ValidatePath(ConflictTree.Node node, List<Agent> agents, out int agentId1, out int agentId2,
+            out ReservationTable.Interval interval)
         {
             //clear
             _agentReservationTable.Clear();
@@ -197,8 +195,8 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
             //get all reservations sorted
             var reservations = new FibonacciHeap<double, Tuple<Agent, ReservationTable.Interval>>();
             foreach (var agent in agents.Where(a => !a.FixedPosition))
-                foreach (var reservation in node.getReservation(agent.ID))
-                    reservations.Enqueue(reservation.Start, Tuple.Create(agent, reservation));
+            foreach (var reservation in node.getReservation(agent.ID))
+                reservations.Enqueue(reservation.Start, Tuple.Create(agent, reservation));
 
             //check all reservations
             while (reservations.Count > 0)
@@ -206,7 +204,8 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
                 var reservation = reservations.Dequeue().Value;
 
                 int collideWithAgentId;
-                var intersectionFree = _agentReservationTable.IntersectionFree(reservation.Item2, out collideWithAgentId);
+                var intersectionFree =
+                    _agentReservationTable.IntersectionFree(reservation.Item2, out collideWithAgentId);
                 if (!intersectionFree)
                 {
                     agentId1 = collideWithAgentId;
@@ -234,8 +233,6 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
         /// <param name="node">The node.</param>
         /// <param name="currentTime">The current time.</param>
         /// <param name="agent">The agent.</param>
-        /// <param name="obstacleNodes">The obstacle nodes.</param>
-        /// <param name="lockedNodes">The locked nodes.</param>
         /// <returns></returns>
         private bool Solve(ConflictTree.Node node, double currentTime, Agent agent)
         {
@@ -254,7 +251,8 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
             //We can use WHCA Star here in a low level approach.
             //Window = Infinitively long
             var rraStar = new ReverseResumableAStar(Graph, agent, agent.Physics, agent.DestinationNode);
-            var aStar = new SpaceTimeAStar(Graph, LengthOfAWaitStep, double.PositiveInfinity, _reservationTable, agent, rraStar);
+            var aStar = new SpaceTimeAStar(Graph, LengthOfAWaitStep, double.PositiveInfinity, _reservationTable, agent,
+                rraStar);
 
             //execute
             var found = aStar.Search();
@@ -280,15 +278,12 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
 
                 //found
                 return true;
-
             }
             else
             {
                 //not found
                 return false;
             }
-
-
         }
 
         /// <summary>
@@ -301,6 +296,5 @@ namespace RAWSimO.MultiAgentPathFinding.Methods
             DepthFirst,
             BreathFirst
         }
-
     }
 }

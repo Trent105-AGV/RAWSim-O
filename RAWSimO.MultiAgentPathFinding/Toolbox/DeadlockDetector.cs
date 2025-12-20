@@ -11,7 +11,6 @@ namespace RAWSimO.MultiAgentPathFinding.Toolbox
     /// </summary>
     public class DeadlockHandler
     {
-
         /// <summary>
         /// The maximum wait time
         /// </summary>
@@ -69,6 +68,7 @@ namespace RAWSimO.MultiAgentPathFinding.Toolbox
                 _waitingSince[agent.ID] = currentTime;
                 _waitNode[agent.ID] = agent.NextNode;
             }
+
             //check if the agent is moving
             foreach (var agent in agents.Where(a => !a.FixedPosition))
             {
@@ -107,18 +107,20 @@ namespace RAWSimO.MultiAgentPathFinding.Toolbox
         /// <param name="finalReservation">if set to <c>true</c> [final reservation].</param>
         /// <param name="insertReservation">if set to <c>true</c> [insert reservation].</param>
         /// <returns></returns>
-        public bool RandomHop(Agent agent, ReservationTable reservationTable = null, double currentTime = 0.0, bool finalReservation = false, bool insertReservation = false)
+        public bool RandomHop(Agent agent, ReservationTable reservationTable = null, double currentTime = 0.0,
+            bool finalReservation = false, bool insertReservation = false)
         {
-
             //try to find a free hop
             var possibleEdges = new List<Edge>(_graph.Edges[agent.NextNode]);
-            shuffle<Edge>(possibleEdges);
-            foreach (var edge in possibleEdges.Where(e => !e.ToNodeInfo.IsLocked && (agent.CanGoThroughObstacles || !e.ToNodeInfo.IsObstacle)))
+            Shuffle(possibleEdges);
+            foreach (var edge in possibleEdges.Where(e =>
+                         !e.ToNodeInfo.IsLocked && (agent.CanGoThroughObstacles || !e.ToNodeInfo.IsObstacle)))
             {
                 //create intervals
                 if (reservationTable != null)
                 {
-                    var intervals = reservationTable.CreateIntervals(currentTime, currentTime, 0, agent.Physics, agent.NextNode, edge.To, finalReservation);
+                    var intervals = reservationTable.CreateIntervals(currentTime, currentTime, 0, agent.Physics,
+                        agent.NextNode, edge.To, finalReservation);
 
                     //check if a reservation is possible
                     if (reservationTable.IntersectionFree(intervals))
@@ -141,7 +143,6 @@ namespace RAWSimO.MultiAgentPathFinding.Toolbox
 
                     return true;
                 }
-
             }
 
             return false;
@@ -150,18 +151,15 @@ namespace RAWSimO.MultiAgentPathFinding.Toolbox
         /// <summary>
         /// Shuffles the specified list.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="list">The list.</param>
-        private void shuffle<T>(IList<T> list)
+        private void Shuffle(List<Edge> list)
         {
-            int n = list.Count;
+            var n = list.Count;
             while (n > 1)
             {
-                int k = (_rnd.Next(0, n) % n);
+                var k = _rnd.Next(n);
                 n--;
-                T value = list[k];
-                list[k] = list[n];
-                list[n] = value;
+                (list[k], list[n]) = (list[n], list[k]);
             }
         }
     }

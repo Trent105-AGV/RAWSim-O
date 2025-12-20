@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.Visualization2D", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.WebServer", "RAWSimO.WebServer\RAWSimO.WebServer.csproj", "{6613AF71-E499-40E0-8A2A-1A3011C4380F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RAWSimO.WebServer.Shared", "RAWSimO.WebServer.Shared\RAWSimO.WebServer.Shared.csproj", "{7A1D7032-5436-4557-9308-A85F490439A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -527,6 +529,30 @@ Global
 		{6613AF71-E499-40E0-8A2A-1A3011C4380F}.XPlatRelease|x64.Build.0 = XPlatRelease|Any CPU
 		{6613AF71-E499-40E0-8A2A-1A3011C4380F}.XPlatRelease|x86.ActiveCfg = XPlatRelease|Any CPU
 		{6613AF71-E499-40E0-8A2A-1A3011C4380F}.XPlatRelease|x86.Build.0 = XPlatRelease|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Debug|x64.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Debug|x86.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Release|x64.ActiveCfg = Release|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Release|x64.Build.0 = Release|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Release|x86.ActiveCfg = Release|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.Release|x86.Build.0 = Release|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlat|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlat|Any CPU.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlat|x64.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlat|x64.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlat|x86.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlat|x86.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlatRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlatRelease|Any CPU.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlatRelease|x64.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlatRelease|x64.Build.0 = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlatRelease|x86.ActiveCfg = Debug|Any CPU
+		{7A1D7032-5436-4557-9308-A85F490439A6}.XPlatRelease|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
