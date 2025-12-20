@@ -1,14 +1,13 @@
 ﻿using RAWSimO.Core;
 using RAWSimO.Core.Control;
 
-namespace RAWSimO.Playground.Tests
+namespace RAWSimO.Playground.Tests;
+
+public class IOTester
 {
-    public class IOTester
+    public static void ExecuteInstance(Instance instance)
     {
-        public static void ExecuteInstance(Instance instance)
-        {
-            // Deus ex machina
-            SimulationExecutor.Execute(instance);
-        }
+        // Deus ex machina
+        SimulationExecutor.Execute(instance);
     }
 }

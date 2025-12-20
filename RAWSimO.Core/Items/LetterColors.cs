@@ -1,28 +1,27 @@
-﻿namespace RAWSimO.Core.Items
+﻿namespace RAWSimO.Core.Items;
+
+/// <summary>
+/// Defines the color of a <code>ColoredLetter</code>.
+/// </summary>
+public enum LetterColors
 {
     /// <summary>
-    /// Defines the color of a <code>ColoredLetter</code>.
+    /// Simple red
     /// </summary>
-    public enum LetterColors
-    {
-        /// <summary>
-        /// Simple red
-        /// </summary>
-        Red,
+    Red,
 
-        /// <summary>
-        /// Simple green
-        /// </summary>
-        Green,
+    /// <summary>
+    /// Simple green
+    /// </summary>
+    Green,
 
-        /// <summary>
-        /// Simple blue
-        /// </summary>
-        Blue,
+    /// <summary>
+    /// Simple blue
+    /// </summary>
+    Blue,
 
-        /// <summary>
-        /// Simple yellow
-        /// </summary>
-        Yellow
-    }
+    /// <summary>
+    /// Simple yellow
+    /// </summary>
+    Yellow
 }

@@ -15,10 +15,9 @@ using RAWSimO.WebServer.SimulationHost.Models;
 
 namespace RAWSimO.WebServer.SimulationHost.Services;
 
-public sealed class SimulationHostServices : ServiceBase<ISimulationHostService>, ISimulationHostService
+public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClient> hub)
+    : ServiceBase<ISimulationHostService>, ISimulationHostService
 {
-    private readonly IHubContext<MessageHub, IMessageClient> _hub;
-
     private readonly Lock _gate = new();
     private readonly Simulation2DCommandBuilder _renderer = new();
 
@@ -30,11 +29,6 @@ public sealed class SimulationHostServices : ServiceBase<ISimulationHostService>
     private volatile bool _isPaused;
 
     private volatile RenderFrameDto? _latestFrame;
-
-    public SimulationHostServices(IHubContext<MessageHub, IMessageClient> hub)
-    {
-        _hub = hub;
-    }
 
     public bool IsRunning
     {
@@ -138,7 +132,7 @@ public sealed class SimulationHostServices : ServiceBase<ISimulationHostService>
                 var token = _cts.Token;
                 _runTask = Task.Run(() => RunLoop(instance, token), token);
                 var successResp = new StartResponse(ESimulationStartResult.Success);
-                _ = SafeBroadcast(() => _hub.Clients.All.StartSimulation(startNotification));
+                _ = SafeBroadcast(() => hub.Clients.All.StartSimulation(startNotification));
                 return UnaryResult.FromResult(successResp);
             }
             catch (Exception ex)
@@ -179,7 +173,7 @@ public sealed class SimulationHostServices : ServiceBase<ISimulationHostService>
         }
 
         var endNotification = new EndSimulationNotification(simTime, error, DateTimeOffset.UtcNow);
-        _ = SafeBroadcast(() => _hub.Clients.All.EndSimulation(endNotification));
+        _ = SafeBroadcast(() => hub.Clients.All.EndSimulation(endNotification));
 
         return UnaryResult.FromResult(true);
     }
@@ -197,7 +191,7 @@ public sealed class SimulationHostServices : ServiceBase<ISimulationHostService>
         }
 
         var notification = new PauseSimulationNotification(simTime, DateTimeOffset.UtcNow);
-        _ = SafeBroadcast(() => _hub.Clients.All.PauseSimulation(notification));
+        _ = SafeBroadcast(() => hub.Clients.All.PauseSimulation(notification));
         return UnaryResult.FromResult(true);
     }
 
@@ -214,7 +208,7 @@ public sealed class SimulationHostServices : ServiceBase<ISimulationHostService>
         }
 
         var notification = new ResumeSimulationNotification(simTime, DateTimeOffset.UtcNow);
-        _ = SafeBroadcast(() => _hub.Clients.All.ResumeSimulation(notification));
+        _ = SafeBroadcast(() => hub.Clients.All.ResumeSimulation(notification));
         return UnaryResult.FromResult(true);
     }
 
@@ -279,7 +273,7 @@ public sealed class SimulationHostServices : ServiceBase<ISimulationHostService>
         {
             const double stepDt = 0.05;
             const int frameEverySteps = 1;
-            int steps = 0;
+            var steps = 0;
 
             while (!ct.IsCancellationRequested)
             {

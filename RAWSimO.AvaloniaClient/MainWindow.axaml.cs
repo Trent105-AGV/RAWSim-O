@@ -100,7 +100,7 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(directory))
             return null;
 
-        var topLevel = TopLevel.GetTopLevel(this);
+        var topLevel = GetTopLevel(this);
         if (topLevel?.StorageProvider == null)
             return null;
 
@@ -116,27 +116,27 @@ public partial class MainWindow : Window
 
     private static readonly FilePickerFileType SettingFileType = new("RAWSimO Setting (*.xsett)")
     {
-        Patterns = new[] { "*.xsett", "*.xml" },
-        MimeTypes = new[] { "application/xml", "text/xml" },
+        Patterns = ["*.xsett", "*.xml"],
+        MimeTypes = ["application/xml", "text/xml"],
     };
 
     private static readonly FilePickerFileType ControlFileType = new("RAWSimO Control (*.xconf)")
     {
-        Patterns = new[] { "*.xconf", "*.xml" },
-        MimeTypes = new[] { "application/xml", "text/xml" },
+        Patterns = ["*.xconf", "*.xml"],
+        MimeTypes = ["application/xml", "text/xml"],
     };
 
     private static readonly FilePickerFileType InstanceOrLayoutFileType =
         new("RAWSimO Instance/Layout (*.xinst, *.xlayo)")
         {
-            Patterns = new[] { "*.xinst", "*.xlayo", "*.xml" },
-            MimeTypes = new[] { "application/xml", "text/xml" },
+            Patterns = ["*.xinst", "*.xlayo", "*.xml"],
+            MimeTypes = ["application/xml", "text/xml"],
         };
 
     private async Task<string> PickFileAsync(string title, string suggestedDirectory,
         IReadOnlyList<FilePickerFileType> fileTypeFilter)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
+        var topLevel = GetTopLevel(this);
         if (topLevel?.StorageProvider == null)
             return null;
 
@@ -168,7 +168,7 @@ public partial class MainWindow : Window
     private async Task<string> PickFolderAsync(string title, string suggestedDirectory,
         Action<string> rememberPickedPath)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
+        var topLevel = GetTopLevel(this);
         if (topLevel?.StorageProvider == null)
             return null;
 
@@ -197,7 +197,7 @@ public partial class MainWindow : Window
         var path = await PickFileAsync(
             "Select instance/layout file",
             _userSettings.LastConfigDirectory,
-            new[] { InstanceOrLayoutFileType });
+            [InstanceOrLayoutFileType]);
         if (string.IsNullOrWhiteSpace(path))
             return;
 
@@ -216,7 +216,7 @@ public partial class MainWindow : Window
         var path = await PickFileAsync(
             "Select setting config file",
             _userSettings.LastConfigDirectory,
-            new[] { SettingFileType });
+            [SettingFileType]);
         if (string.IsNullOrWhiteSpace(path))
             return;
 
@@ -376,7 +376,7 @@ public partial class MainWindow : Window
             LogLine(validationInfo);
             LogLine($"Paths: instance/layout='{instancePath}', setting='{settingPath}', control='{controlPath}'");
 
-            Action<string> logAction = LogLine;
+            var logAction = LogLine;
 
             _instance = InstanceIO.ReadInstance(
                 instancePath,
@@ -412,7 +412,7 @@ public partial class MainWindow : Window
                     {
                         StartButton.IsEnabled = true;
                         StopButton.IsEnabled = false;
-                        StatusText.Text = t.IsCanceled ? "Canceled" : (t.IsFaulted ? "Error" : "Finished");
+                        StatusText.Text = t.IsCanceled ? "Canceled" : t.IsFaulted ? "Error" : "Finished";
                     });
 
                     if (t.Exception != null)

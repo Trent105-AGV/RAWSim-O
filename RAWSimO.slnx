@@ -27,6 +27,7 @@
     <Build Solution="XPlatRelease|Any CPU" Project="false" />
     <Build Solution="XPlat|Any CPU" Project="false" />
   </Project>
+  <Project Path="RAWSimO.AvaloniaClient\RAWSimO.AvaloniaClient.csproj" />
   <Project Path="RAWSimO.CLI/RAWSimO.CLI.csproj" />
   <Project Path="RAWSimO.CommFramework/RAWSimO.CommFramework.csproj" />
   <Project Path="RAWSimO.Core/RAWSimO.Core.csproj" />
@@ -45,7 +46,6 @@
     <Build Solution="XPlatRelease|Any CPU" Project="false" />
     <Build Solution="XPlat|Any CPU" Project="false" />
   </Project>
-  <Project Path="RAWSimO.Visualization2D/RAWSimO.Visualization2D.csproj" />
   <Project Path="RAWSimO.VisualToolbox/RAWSimO.VisualToolbox.csproj">
     <Build Solution="XPlatRelease|Any CPU" Project="false" />
     <Build Solution="XPlat|Any CPU" Project="false" />

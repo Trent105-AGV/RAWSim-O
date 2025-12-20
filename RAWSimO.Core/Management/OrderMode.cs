@@ -1,23 +1,22 @@
-﻿namespace RAWSimO.Core.Management
+﻿namespace RAWSimO.Core.Management;
+
+/// <summary>
+/// Defines different modes for order and bundle generation.
+/// </summary>
+public enum OrderMode
 {
     /// <summary>
-    /// Defines different modes for order and bundle generation.
+    /// All orders and bundles are generated randomly as required.
     /// </summary>
-    public enum OrderMode
-    {
-        /// <summary>
-        /// All orders and bundles are generated randomly as required.
-        /// </summary>
-        Fill,
+    Fill,
 
-        /// <summary>
-        /// All orders are generated in a poisson process.
-        /// </summary>
-        Poisson,
+    /// <summary>
+    /// All orders are generated in a poisson process.
+    /// </summary>
+    Poisson,
 
-        /// <summary>
-        /// All orders and bundles are submitted like specified by a given file.
-        /// </summary>
-        Fixed
-    }
+    /// <summary>
+    /// All orders and bundles are submitted like specified by a given file.
+    /// </summary>
+    Fixed
 }

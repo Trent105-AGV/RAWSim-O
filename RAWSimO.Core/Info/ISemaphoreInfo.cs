@@ -1,19 +1,18 @@
-﻿namespace RAWSimO.Core.Info
+﻿namespace RAWSimO.Core.Info;
+
+/// <summary>
+/// The interface for supplying information about a semaphore object.
+/// </summary>
+public interface ISemaphoreInfo
 {
     /// <summary>
-    /// The interface for supplying information about a semaphore object.
+    /// The ID of this semaphore.
     /// </summary>
-    public interface ISemaphoreInfo
-    {
-        /// <summary>
-        /// The ID of this semaphore.
-        /// </summary>
-        /// <returns>The ID of this semaphore.</returns>
-        int GetInfoID();
-        /// <summary>
-        /// The number of guards associated with this semaphore.
-        /// </summary>
-        /// <returns>The number of guards belonging to this semaphore.</returns>
-        int GetInfoGuards();
-    }
+    /// <returns>The ID of this semaphore.</returns>
+    int GetInfoID();
+    /// <summary>
+    /// The number of guards associated with this semaphore.
+    /// </summary>
+    /// <returns>The number of guards belonging to this semaphore.</returns>
+    int GetInfoGuards();
 }

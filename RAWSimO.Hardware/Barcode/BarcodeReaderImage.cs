@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-namespace RAWSimO.Hardware.Barcode
-{
-    /// <summary>
-    /// A barcode reader which accepts an Image instance from EmguCV
-    /// </summary>
-    public class BarcodeReaderImage : BarcodeReaderGeneric<Image<Emgu.CV.Structure.Bgr, byte>>, IBarcodeReaderImage
-    {
-        private static readonly Func<Image<Emgu.CV.Structure.Bgr, byte>, LuminanceSource> defaultCreateLuminanceSource =
-           (image) => new ImageLuminanceSource(image);
+namespace RAWSimO.Hardware.Barcode;
 
-        public BarcodeReaderImage()
-            : base(null, defaultCreateLuminanceSource, null)
-        {
-        }
+/// <summary>
+/// A barcode reader which accepts an Image instance from EmguCV
+/// </summary>
+public class BarcodeReaderImage : BarcodeReaderGeneric<Image<Emgu.CV.Structure.Bgr, byte>>, IBarcodeReaderImage
+{
+    private static readonly Func<Image<Emgu.CV.Structure.Bgr, byte>, LuminanceSource> defaultCreateLuminanceSource =
+        (image) => new ImageLuminanceSource(image);
+
+    public BarcodeReaderImage()
+        : base(null, defaultCreateLuminanceSource, null)
+    {
     }
 }

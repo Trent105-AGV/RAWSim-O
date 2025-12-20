@@ -11,7 +11,7 @@ public sealed record RenderFrameDto(
 )
 {
     public static RenderFrameDto Empty(int w, int h, int tierIndex) =>
-        new(w, h, tierIndex, 0, Array.Empty<RenderCommandDto>());
+        new(w, h, tierIndex, 0, []);
 
     public static RenderFrameDto From(RenderFrame frame, int w, int h, int tierIndex, double simTime)
         => new(w, h, tierIndex, simTime, frame.Commands.Select(RenderCommandDto.From).ToArray());
