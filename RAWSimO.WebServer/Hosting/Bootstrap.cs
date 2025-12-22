@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Text;
 using Grpc.Net.Client;
 using Microsoft.AspNetCore.Mvc;
-using RAWSimO.WebServer.Health;
 using RAWSimO.WebServer.Hubs;
 using RAWSimO.WebServer.Shared.Configuration;
 using RAWSimO.WebServer.Shared.Runtime;
@@ -49,7 +48,6 @@ public static class Bootstrap
 
         builder.Services.AddRAWSimOWebServerControllers();
         builder.Services.AddSimulationHostModule();
-        builder.Services.AddHealthModule();
 
         builder.Services.AddSignalR(options => { options.EnableDetailedErrors = true; });
 
@@ -77,7 +75,6 @@ public static class Bootstrap
         app.UseCors();
 
         app.UseSimulationHostModule();
-        app.UseHealthModule();
 
         // 映射端点（必须在认证/授权之后）
         app.MapMagicOnionService();
@@ -87,7 +84,6 @@ public static class Bootstrap
         app.MapGet("/health", () => "healthy");
 
         app.Run();
-
     }
 
     private static void ValidateControllers(IServiceProvider services)
@@ -147,7 +143,9 @@ public static class Bootstrap
 
             throw new InvalidOperationException(
                 $"{failedControllers.Count} controller(s) failed dependency validation. " +
-                "Please check if all required services are registered in the DI container.");
+                "Please check if all required services are registered in the DI container.\n" +
+                "Logging details:\n" +
+                $"{builder}");
         }
 
         builder.AppendLine($"\n✓ All {controllerTypes.Count} controllers validated successfully");
