@@ -16,8 +16,14 @@ using RAWSimO.WebServer.SimulationHost.Models;
 
 namespace RAWSimO.WebServer.SimulationHost.Services;
 
+public interface ISimulationStreamService
+{
+    Task StreamFramesSse(HttpResponse response, int widthPx, int heightPx, int tierIndex,
+        RenderOptions? options, CancellationToken ct);
+}
+
 public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClient> hub)
-    : ServiceBase<ISimulationHostService>, ISimulationHostService
+    : ServiceBase<ISimulationHostService>, ISimulationHostService, ISimulationStreamService
 {
     private readonly Lock _gate = new();
     private readonly Simulation2DCommandBuilder _renderer = new();
@@ -200,16 +206,15 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         var endNotification = new EndSimulationNotification(simTime, error, DateTimeOffset.UtcNow);
         _ = SafeBroadcast(() => hub.Clients.All.EndSimulation(endNotification));
 
-        if (!string.IsNullOrWhiteSpace(runInputDirectory))
+        if (string.IsNullOrWhiteSpace(runInputDirectory)) return UnaryResult.FromResult(true);
+        if (runTask is not null)
         {
-            if (runTask is not null)
-            {
-                _ = runTask.ContinueWith(_ => TryDeleteDirectory(runInputDirectory));
-            }
-            else
-            {
-                TryDeleteDirectory(runInputDirectory);
-            }
+            // ReSharper disable once MethodSupportsCancellation
+            _ = runTask.ContinueWith(_ => TryDeleteDirectory(runInputDirectory));
+        }
+        else
+        {
+            TryDeleteDirectory(runInputDirectory);
         }
 
         return UnaryResult.FromResult(true);

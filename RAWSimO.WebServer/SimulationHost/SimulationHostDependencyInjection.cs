@@ -9,6 +9,7 @@ public static class SimulationHostDependencyInjection
 	{
 		self.AddSingleton<SimulationHostServices>();
 		self.AddSingleton<ISimulationHostService>(sp => sp.GetRequiredService<SimulationHostServices>());
+		self.AddSingleton<ISimulationStreamService>(sp => sp.GetRequiredService<SimulationHostServices>());
 	}
 
 	public static void UseSimulationHostModule(this WebApplication self)
