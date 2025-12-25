@@ -119,7 +119,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                     resolved.SettingPath,
                     resolved.ControlConfigPath,
                     logAction: logAction,
-                    additionalResourceDirectory: resolved.AdditionalResourceDirectory);
+                    additionalResourceDirectory: string.IsNullOrWhiteSpace(request.ResourceDirectory)
+                        ? resolved.AdditionalResourceDirectory
+                        : request.ResourceDirectory);
                 instance.SettingConfig.LogAction = logAction;
 
                 var seed = request.Seed ?? instance.SettingConfig.Seed;

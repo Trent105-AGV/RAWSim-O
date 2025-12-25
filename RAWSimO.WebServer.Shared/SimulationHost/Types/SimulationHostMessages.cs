@@ -23,7 +23,8 @@ public sealed record StartRequest(
     [property: Key(2)] string ControlConfig,
     [property: Key(3)] string StatisticsDir,
     [property: Key(4)] int? Seed,
-    [property: Key(5)] string? Tag
+    [property: Key(5)] string? Tag,
+    [property: Key(6)] string? ResourceDirectory
 );
 
 [MessagePackObject]

@@ -8,7 +8,6 @@ internal sealed class ClientUserSettings
 {
     public string LastConfigDirectory { get; set; }
     public string LastStatisticsDirectory { get; set; }
-    public string LastWordlistDirectory { get; set; }
     public string LastResourceDirectory { get; set; }
 
     private static string SettingsFilePath
@@ -36,12 +35,7 @@ internal sealed class ClientUserSettings
                 return new ClientUserSettings();
 
             var json = File.ReadAllText(path);
-            var settings = JsonSerializer.Deserialize<ClientUserSettings>(json) ?? new ClientUserSettings();
-            // Backward compatibility: older versions used LastWordlistDirectory for resources.
-            if (string.IsNullOrWhiteSpace(settings.LastResourceDirectory) &&
-                !string.IsNullOrWhiteSpace(settings.LastWordlistDirectory))
-                settings.LastResourceDirectory = settings.LastWordlistDirectory;
-            return settings;
+            return JsonSerializer.Deserialize<ClientUserSettings>(json) ?? new ClientUserSettings();
         }
         catch
         {
