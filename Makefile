@@ -42,7 +42,25 @@ clean:
 .PHONY: build
 build:
 	@echo "Publishing projects to separate directories..."
-	@dotnet publish RAWSimO.WebServer/RAWSimO.WebServer.csproj -f net10.0 -c Release -o publish/rawsimo
+	@dotnet publish RAWSimO.WebServer/RAWSimO.WebServer.csproj -f net10.0 -c Release -o publish/rawsimo/dep
+	@mkdir -p publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.Core.dll publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.Core.pdb publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.WebServer.pdb publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.WebServer.dll publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.WebServer.Shared.pdb publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.WebServer.Shared.dll publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.Rendering2D.pdb publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.Rendering2D.dll publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.MultiAgentPathFinding.pdb publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.MultiAgentPathFinding.dll publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.Toolbox.pdb publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.Toolbox.dll publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.WebServer.deps.json publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.WebServer.runtimeconfig.json publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.WebServer publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/RAWSimO.Core.xml publish/rawsimo/webserver
+	@mv publish/rawsimo/dep/web.config publish/rawsimo/webserver
 	@echo "Building Docker images..."
 	@python3 tool/build-image.py
 
