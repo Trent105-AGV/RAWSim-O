@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Xml;
@@ -114,14 +115,18 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 var resolved = ResolveInputs(request);
 
+                var additionalResourceDirectory = (request.ResourceZip is { Length: > 0 })
+                    ? resolved.AdditionalResourceDirectory
+                    : (!string.IsNullOrWhiteSpace(request.ResourceDirectory)
+                        ? request.ResourceDirectory
+                        : resolved.AdditionalResourceDirectory);
+
                 var instance = InstanceIO.ReadInstance(
                     resolved.InstancePath,
                     resolved.SettingPath,
                     resolved.ControlConfigPath,
                     logAction: logAction,
-                    additionalResourceDirectory: string.IsNullOrWhiteSpace(request.ResourceDirectory)
-                        ? resolved.AdditionalResourceDirectory
-                        : request.ResourceDirectory);
+                    additionalResourceDirectory: additionalResourceDirectory);
                 instance.SettingConfig.LogAction = logAction;
 
                 var seed = request.Seed ?? instance.SettingConfig.Seed;
@@ -248,13 +253,66 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         File.WriteAllText(settingPath, request.Setting, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         File.WriteAllText(controlPath, request.ControlConfig, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
+        var additionalResourceDirectory = runDir;
+        if (request.ResourceZip is { Length: > 0 })
+        {
+            additionalResourceDirectory = ExtractResourceZipToDirectory(request.ResourceZip, runDir);
+        }
+
         return new ResolvedInputs(
             InstancePath: instancePath,
             SettingPath: settingPath,
             ControlConfigPath: controlPath,
-            AdditionalResourceDirectory: runDir,
+            AdditionalResourceDirectory: additionalResourceDirectory,
             RunInputDirectory: runDir
         );
+    }
+
+    private static string ExtractResourceZipToDirectory(byte[] zipBytes, string runDir)
+    {
+        var extractRoot = Path.Combine(runDir, "resources");
+        Directory.CreateDirectory(extractRoot);
+
+        var extractRootFullPath = Path.GetFullPath(extractRoot);
+        if (!extractRootFullPath.EndsWith(Path.DirectorySeparatorChar))
+            extractRootFullPath += Path.DirectorySeparatorChar;
+
+        using var ms = new MemoryStream(zipBytes);
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read, leaveOpen: false);
+
+        foreach (var entry in archive.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.FullName))
+                continue;
+
+            // Prevent zip-slip by validating the full path is within the extract root.
+            var destinationPath = Path.GetFullPath(Path.Combine(extractRoot, entry.FullName));
+            if (!destinationPath.StartsWith(extractRootFullPath, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Invalid zip entry path: {entry.FullName}");
+
+            // Directory entry
+            if (entry.FullName.EndsWith("/", StringComparison.Ordinal) || entry.FullName.EndsWith("\\", StringComparison.Ordinal))
+            {
+                Directory.CreateDirectory(destinationPath);
+                continue;
+            }
+
+            var parent = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrWhiteSpace(parent))
+                Directory.CreateDirectory(parent);
+
+            using var entryStream = entry.Open();
+            using var fileStream = File.Create(destinationPath);
+            entryStream.CopyTo(fileStream);
+        }
+
+        // If the zip contains a single top-level directory, use it as the resource root.
+        var topFiles = Directory.GetFiles(extractRoot);
+        var topDirs = Directory.GetDirectories(extractRoot);
+        if (topFiles.Length == 0 && topDirs.Length == 1)
+            return topDirs[0];
+
+        return extractRoot;
     }
 
     private static string GuessInstanceFileName(string content)
