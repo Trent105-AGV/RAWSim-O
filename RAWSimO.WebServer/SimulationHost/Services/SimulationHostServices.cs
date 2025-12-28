@@ -26,10 +26,14 @@ public interface ISimulationStreamService
 public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClient> hub)
     : ServiceBase<ISimulationHostService>, ISimulationHostService, ISimulationStreamService
 {
+    private const string StatisticsRootDirectory = "/app/out";
+
     private readonly Lock _gate = new();
     private readonly Simulation2DCommandBuilder _renderer = new();
 
     private string? _runInputDirectory;
+
+    private string? _statisticsOutputDirName;
 
     private CancellationTokenSource? _cts;
     private Task? _runTask;
@@ -81,11 +85,10 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     public UnaryResult<StartResponse> StartSimulation(StartRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Instance) || string.IsNullOrWhiteSpace(request.Setting) ||
-            string.IsNullOrWhiteSpace(request.ControlConfig) ||
-            string.IsNullOrWhiteSpace(request.StatisticsDir))
+            string.IsNullOrWhiteSpace(request.ControlConfig))
         {
             var resp = new StartResponse(ESimulationStartResult.InvalidConfiguration,
-                "Instance/Setting/ControlConfig/StatisticsDir are required");
+                "Instance/Setting/ControlConfig are required");
             return UnaryResult.FromResult(resp);
         }
 
@@ -102,6 +105,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             _lastError = null;
             _latestFrame = null;
             _isPaused = false;
+            _statisticsOutputDirName = null;
 
             // Clean up previous run inputs if any (only used for inline-content mode).
             TryDeleteDirectory(_runInputDirectory);
@@ -113,18 +117,12 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             {
                 Action<string> logAction = Console.WriteLine;
 
-                var resolved = ResolveInputs(request);
-
-                var additionalResourceDirectory = (request.ResourceZip is { Length: > 0 })
-                    ? resolved.AdditionalResourceDirectory
-                    : (!string.IsNullOrWhiteSpace(request.ResourceDirectory)
-                        ? request.ResourceDirectory
-                        : resolved.AdditionalResourceDirectory);
+                var (instancePath, settingPath, controlConfigPath, additionalResourceDirectory, runInputDirectory) = ResolveInputs(request);
 
                 var instance = InstanceIO.ReadInstance(
-                    resolved.InstancePath,
-                    resolved.SettingPath,
-                    resolved.ControlConfigPath,
+                    instancePath,
+                    settingPath,
+                    controlConfigPath,
                     logAction: logAction,
                     additionalResourceDirectory: additionalResourceDirectory);
                 instance.SettingConfig.LogAction = logAction;
@@ -138,7 +136,11 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 var statisticsFolder = instance.Name + "-" + instance.SettingConfig.Name + "-" +
                                        instance.ControllerConfig.Name + "-" + seed;
-                instance.SettingConfig.StatisticsDirectory = Path.Combine(request.StatisticsDir, statisticsFolder);
+
+                Directory.CreateDirectory(StatisticsRootDirectory);
+                var statisticsDirName = MakeUniqueSubdirectoryName(StatisticsRootDirectory, statisticsFolder);
+                _statisticsOutputDirName = statisticsDirName;
+                instance.SettingConfig.StatisticsDirectory = Path.Combine(StatisticsRootDirectory, statisticsDirName);
 
                 Directory.CreateDirectory(instance.SettingConfig.StatisticsDirectory);
                 var logPath = Path.Combine(instance.SettingConfig.StatisticsDirectory, IOConstants.LOG_FILE);
@@ -146,7 +148,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 _instance = instance;
 
-                _runInputDirectory = resolved.RunInputDirectory;
+                _runInputDirectory = runInputDirectory;
 
                 startNotification = new StartSimulationNotification(
                     Instance: request.Instance,
@@ -167,6 +169,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             {
                 _lastError = ex;
                 _instance = null;
+                _statisticsOutputDirName = null;
                 _cts?.Dispose();
                 _cts = null;
                 _runTask = null;
@@ -178,11 +181,12 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         }
     }
 
-    public UnaryResult<bool> EndSimulation()
+    public UnaryResult<EndSimulationResponse> EndSimulation()
     {
         CancellationTokenSource? cts;
         Task? runTask;
         string? runInputDirectory;
+        string? statisticsOutputDirName;
         double simTime;
         string? error;
 
@@ -192,6 +196,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
             runTask = _runTask;
             runInputDirectory = _runInputDirectory;
+            statisticsOutputDirName = _statisticsOutputDirName;
 
             simTime = _instance?.Controller?.CurrentTime ?? 0;
             error = _lastError?.ToString();
@@ -213,7 +218,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         var endNotification = new EndSimulationNotification(simTime, error, DateTimeOffset.UtcNow);
         _ = SafeBroadcast(() => hub.Clients.All.EndSimulation(endNotification));
 
-        if (string.IsNullOrWhiteSpace(runInputDirectory)) return UnaryResult.FromResult(true);
+        var response = new EndSimulationResponse(statisticsOutputDirName, simTime, error);
+
+        if (string.IsNullOrWhiteSpace(runInputDirectory)) return UnaryResult.FromResult(response);
         if (runTask is not null)
         {
             // ReSharper disable once MethodSupportsCancellation
@@ -224,7 +231,21 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             TryDeleteDirectory(runInputDirectory);
         }
 
-        return UnaryResult.FromResult(true);
+        return UnaryResult.FromResult(response);
+    }
+
+    private static string MakeUniqueSubdirectoryName(string rootDir, string preferredName)
+    {
+        // Avoid collisions in the fixed /app/out root.
+        var safePreferred = string.IsNullOrWhiteSpace(preferredName) ? "run" : preferredName;
+        var candidate = safePreferred;
+        var full = Path.Combine(rootDir, candidate);
+        if (!Directory.Exists(full))
+            return candidate;
+
+        var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss");
+        candidate = $"{safePreferred}-{stamp}-{Guid.NewGuid():N}";
+        return candidate;
     }
 
     private sealed record ResolvedInputs(

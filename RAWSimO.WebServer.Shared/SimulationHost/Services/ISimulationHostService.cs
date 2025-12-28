@@ -26,7 +26,7 @@ public interface ISimulationHostService : IService<ISimulationHostService>
     /// <summary>
     /// Stop the running simulation
     /// </summary>
-    UnaryResult<bool> EndSimulation();
+    UnaryResult<EndSimulationResponse> EndSimulation();
 
     /// <summary>
     /// Pause the running simulation

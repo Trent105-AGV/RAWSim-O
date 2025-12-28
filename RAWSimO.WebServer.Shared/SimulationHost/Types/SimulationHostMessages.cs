@@ -21,11 +21,16 @@ public sealed record StartRequest(
     [property: Key(0)] string Instance,
     [property: Key(1)] string Setting,
     [property: Key(2)] string ControlConfig,
-    [property: Key(3)] string StatisticsDir,
-    [property: Key(4)] int? Seed,
-    [property: Key(5)] string? Tag,
-    [property: Key(6)] string? ResourceDirectory,
-    [property: Key(7)] byte[]? ResourceZip
+    [property: Key(3)] int? Seed,
+    [property: Key(4)] string? Tag,
+    [property: Key(5)] byte[]? ResourceZip
+);
+
+[MessagePackObject]
+public sealed record EndSimulationResponse(
+    [property: Key(0)] string? OutputDirName,
+    [property: Key(1)] double SimTime,
+    [property: Key(2)] string? Error
 );
 
 [MessagePackObject]
