@@ -40,7 +40,7 @@ internal class LayoutGenerator
     /// <param name="north">Indicates whether a north direction is desired.</param>
     /// <param name="south">Indicates whether a south direction is desired.</param>
     /// <returns>The direction.</returns>
-    internal static directions GetDirectionType(bool east, bool west, bool south, bool north)
+    internal static Directions GetDirectionType(bool east, bool west, bool south, bool north)
     {
         if (east)
         {
@@ -53,17 +53,17 @@ internal class LayoutGenerator
                     // NORTH
                     if (south)
                         // SOUTH
-                        return directions.EastNorthSouthWest;
+                        return Directions.EastNorthSouthWest;
                     // NO SOUTH
-                    return directions.EastNorthWest;
+                    return Directions.EastNorthWest;
                 }
 
                 // NO NORTH
                 if (south)
                     // SOUTH
-                    return directions.EastSouthWest;
+                    return Directions.EastSouthWest;
                 // NO SOUTH
-                return directions.EastWest;
+                return Directions.EastWest;
             }
 
             // NO WEST
@@ -72,17 +72,17 @@ internal class LayoutGenerator
                 // NORTH
                 if (south)
                     // SOUTH
-                    return directions.EastNorthSouth;
+                    return Directions.EastNorthSouth;
                 // NO SOUTH
-                return directions.EastNorth;
+                return Directions.EastNorth;
             }
 
             // NO NORTH
             if (south)
                 // SOUTH
-                return directions.EastSouth;
+                return Directions.EastSouth;
             // NO SOUTH
-            return directions.East;
+            return Directions.East;
         }
 
         // NO EAST
@@ -94,17 +94,17 @@ internal class LayoutGenerator
                 // NORTH
                 if (south)
                     // SOUTH
-                    return directions.NorthSouthWest;
+                    return Directions.NorthSouthWest;
                 // NO SOUTH
-                return directions.NorthWest;
+                return Directions.NorthWest;
             }
 
             // NO NORTH
             if (south)
                 // SOUTH
-                return directions.SouthWest;
+                return Directions.SouthWest;
             // NO SOUTH
-            return directions.West;
+            return Directions.West;
         }
 
         // NO WEST
@@ -113,17 +113,17 @@ internal class LayoutGenerator
             // NORTH
             if (south)
                 // SOUTH
-                return directions.NorthSouth;
+                return Directions.NorthSouth;
             // NO SOUTH
-            return directions.North;
+            return Directions.North;
         }
 
         // NO NORTH
         if (south)
             // SOUTH
-            return directions.South;
+            return Directions.South;
         // NO SOUTH
-        return directions.Invalid;
+        return Directions.Invalid;
     }
 
     /// <summary>
@@ -216,22 +216,22 @@ internal class LayoutGenerator
                     var addSouth = false;
                     switch (tiles[row, column].direction)
                     {
-                        case directions.EastNorthSouthWest: addEast = true; addNorth = true; addSouth = true; addWest = true; break;
-                        case directions.NorthSouthWest: addNorth = true; addSouth = true; addWest = true; break;
-                        case directions.EastNorthSouth: addEast = true; addNorth = true; addSouth = true; break;
-                        case directions.EastNorthWest: addEast = true; addNorth = true; addWest = true; break;
-                        case directions.EastSouthWest: addEast = true; addSouth = true; addWest = true; break;
-                        case directions.NorthSouth: addNorth = true; addSouth = true; break;
-                        case directions.NorthWest: addNorth = true; addWest = true; break;
-                        case directions.EastNorth: addEast = true; addNorth = true; break;
-                        case directions.SouthWest: addSouth = true; addWest = true; break;
-                        case directions.EastSouth: addEast = true; addSouth = true; break;
-                        case directions.EastWest: addEast = true; addWest = true; break;
-                        case directions.East: addEast = true; break;
-                        case directions.West: addWest = true; break;
-                        case directions.South: addSouth = true; break;
-                        case directions.North: addNorth = true; break;
-                        case directions.Invalid: throw new ArgumentException("invalid direction encountered");
+                        case Directions.EastNorthSouthWest: addEast = true; addNorth = true; addSouth = true; addWest = true; break;
+                        case Directions.NorthSouthWest: addNorth = true; addSouth = true; addWest = true; break;
+                        case Directions.EastNorthSouth: addEast = true; addNorth = true; addSouth = true; break;
+                        case Directions.EastNorthWest: addEast = true; addNorth = true; addWest = true; break;
+                        case Directions.EastSouthWest: addEast = true; addSouth = true; addWest = true; break;
+                        case Directions.NorthSouth: addNorth = true; addSouth = true; break;
+                        case Directions.NorthWest: addNorth = true; addWest = true; break;
+                        case Directions.EastNorth: addEast = true; addNorth = true; break;
+                        case Directions.SouthWest: addSouth = true; addWest = true; break;
+                        case Directions.EastSouth: addEast = true; addSouth = true; break;
+                        case Directions.EastWest: addEast = true; addWest = true; break;
+                        case Directions.East: addEast = true; break;
+                        case Directions.West: addWest = true; break;
+                        case Directions.South: addSouth = true; break;
+                        case Directions.North: addNorth = true; break;
+                        case Directions.Invalid: throw new ArgumentException("invalid direction encountered");
                         default: break;
                     }
                     var current = tiles[row, column].wp;
@@ -439,7 +439,7 @@ internal class LayoutGenerator
     }
 }
 
-internal enum directions
+internal enum Directions
 {
     //this enum indicates to which other waypoints a waypoint is connected. 
     //So for example, East means that a waypoint is only connected to the waypoint directly east of it, 
@@ -547,20 +547,20 @@ internal struct Coordinate
 internal class Tile
 {
     public Waypoint wp { get; }
-    public directions direction { get; }
+    public Directions direction { get; }
     public waypointTypes type { get; }
 
-    public Tile(directions d, Waypoint wp, waypointTypes type)
+    public Tile(Directions d, Waypoint wp, waypointTypes type)
     {
         direction = d;
         this.wp = wp;
         this.type = type;
 
-        if (type.Equals(waypointTypes.StorageLocation) && !d.Equals(directions.EastNorthSouthWest))
+        if (type.Equals(waypointTypes.StorageLocation) && !d.Equals(Directions.EastNorthSouthWest))
         {
             throw new ArgumentException("something went wrong with storage locations");
         }
-        if (d.Equals(directions.Invalid))
+        if (d.Equals(Directions.Invalid))
         {
             throw new ArgumentException("direction invalid");
         }
@@ -574,22 +574,22 @@ internal class Tile
     {
         return direction switch
         {
-            directions.EastNorthSouthWest => "+",
-            directions.NorthSouthWest => "<",
-            directions.EastNorthSouth => ">",
-            directions.EastNorthWest => "^",
-            directions.EastSouthWest => "v",
-            directions.NorthSouth => "|",
-            directions.NorthWest => "d",
-            directions.EastNorth => "b",
-            directions.SouthWest => "q",
-            directions.EastSouth => "p",
-            directions.EastWest => "-",
-            directions.East => "e",
-            directions.West => "w",
-            directions.South => "s",
-            directions.North => "n",
-            directions.Invalid => "INVALID DIRECTION!",
+            Directions.EastNorthSouthWest => "+",
+            Directions.NorthSouthWest => "<",
+            Directions.EastNorthSouth => ">",
+            Directions.EastNorthWest => "^",
+            Directions.EastSouthWest => "v",
+            Directions.NorthSouth => "|",
+            Directions.NorthWest => "d",
+            Directions.EastNorth => "b",
+            Directions.SouthWest => "q",
+            Directions.EastSouth => "p",
+            Directions.EastWest => "-",
+            Directions.East => "e",
+            Directions.West => "w",
+            Directions.South => "s",
+            Directions.North => "n",
+            Directions.Invalid => "INVALID DIRECTION!",
             _ => "SOMETHING WENT WRONG"
         };
     }

@@ -7,7 +7,7 @@ namespace RAWSimO.Core.IO;
 /// <summary>
 /// Defines certain constants used for serialization and deserialization.
 /// </summary>
-public class IOConstants
+public static class IOConstants
 {
     #region Delimiters and Formatting
 
@@ -236,6 +236,10 @@ public class IOConstants
         /// </summary>
         HeatStorageLocationPolling,
         /// <summary>
+        /// The file storing detailed per-bot per-timestep locations.
+        /// </summary>
+        BotLocationsDetailed,
+        /// <summary>
         /// The file for storing the individual separate performance result for the async order manager, if present.
         /// </summary>
         IndividualPerformanceFileOrderManagerAsyncSeparate,
@@ -275,6 +279,7 @@ public class IOConstants
         { StatFile.HeatLocationPolling, "locationspolled.heat" },
         { StatFile.HeatTrips, "trips.heat" },
         { StatFile.HeatStorageLocationPolling, "storagelocationinfopolled.heat" },
+        { StatFile.BotLocationsDetailed, "botlocations_detailed.csv" },
         { StatFile.IndividualPerformanceFileOrderManagerAsyncSeparate, "ordermanagerasyncseparate.csv" },
         { StatFile.IndividualPerformanceFileOrderManagerAsyncConsolidated, "ordermanagerasyncconsolidated.csv" },
     };

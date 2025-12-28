@@ -1860,6 +1860,71 @@ public class FootprintDatapoint
 
 #endregion
 
+#region Bot location detailed datapoint
+
+/// <summary>
+/// Contains a detailed per-bot per-timestep location snapshot suitable for CSV export.
+/// </summary>
+public class BotLocationDetailedDatapoint
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    public int BotId { get; set; }
+    /// <summary>
+    /// 
+    /// </summary>
+    public int Tier { get; set; }
+    /// <summary>
+    /// 
+    /// </summary>
+    public double X { get; set; }
+    /// <summary>
+    /// 
+    /// </summary>
+    public double Y { get; set; }
+    /// <summary>
+    /// 
+    /// </summary>
+    public double TimeStamp { get; set; }
+    /// <summary>
+    /// 
+    /// </summary>
+    public string Task { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    public static string GetHeader()
+    {
+        return string.Join(IOConstants.DELIMITER_VALUE.ToString(),
+            "BotID",
+            "Tier",
+            "X",
+            "Y",
+            "Timestamp",
+            "Task");
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    public string GetLine()
+    {
+        return string.Join(IOConstants.DELIMITER_VALUE.ToString(),
+            BotId.ToString(IOConstants.FORMATTER),
+            Tier.ToString(IOConstants.FORMATTER),
+            X.ToString(IOConstants.FORMATTER),
+            Y.ToString(IOConstants.FORMATTER),
+            TimeStamp.ToString(IOConstants.FORMATTER),
+            Task);
+    }
+}
+
+#endregion
+
 #region Well sortedness datapoint
 
 /// <summary>

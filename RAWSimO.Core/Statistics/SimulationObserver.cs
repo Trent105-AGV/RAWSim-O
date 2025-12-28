@@ -231,6 +231,10 @@ public class SimulationObserver : IUpdateable
     /// Log of the polled positions over time.
     /// </summary>
     private readonly List<LocationDatapoint> _logLocationPolling = [];
+    /// <summary>
+    /// Log of the detailed per-bot per-timestep locations over time.
+    /// </summary>
+    private readonly List<BotLocationDetailedDatapoint> _logBotLocationsDetailed = [];
 
     private void FlushLocationsPolled()
     {
@@ -257,6 +261,32 @@ public class SimulationObserver : IUpdateable
         _logLocationPolling.Clear();
     }
 
+    /// <summary>
+    /// Flushes the detailed per-bot locations to the data-file.
+    /// </summary>
+    private void FlushBotLocationsDetailed()
+    {
+        _instance.StatInitDirectory();
+        switch (_instance.SettingConfig.LogFileLevel)
+        {
+            case Configurations.LogFileLevel.All:
+                var path = Path.Combine(_instance.SettingConfig.StatisticsDirectory, IOConstants.StatFileNames[IOConstants.StatFile.BotLocationsDetailed]);
+                var alreadyExists = File.Exists(path);
+                using (var sw = new StreamWriter(path, true))
+                {
+                    if (!alreadyExists)
+                        sw.WriteLine(BotLocationDetailedDatapoint.GetHeader());
+                    foreach (var d in _logBotLocationsDetailed)
+                        sw.WriteLine(d.GetLine());
+                }
+                break;
+            case Configurations.LogFileLevel.FootprintOnly:
+                break;
+            default: throw new ArgumentException("Unknown log level: " + _instance.SettingConfig.LogFileLevel);
+        }
+        _logBotLocationsDetailed.Clear();
+    }
+
     #endregion
 
     #region Pod polling
@@ -273,6 +303,7 @@ public class SimulationObserver : IUpdateable
 
     private void FlushStorageLocationInfoPolled()
     {
+            _logBotLocationsDetailed.Clear();
         // Init statistics directory
         _instance.StatInitDirectory();
         // Write storage location info polled
@@ -770,9 +801,22 @@ public class SimulationObserver : IUpdateable
             _logLocationPolling.AddRange(
                 _instance.Bots.Select(b =>
                     new LocationDatapoint { X = b.X, Y = b.Y, TimeStamp = currentTime - _instance.StatTimeStart, Tier = b.Tier.ID, BotTask = b.CurrentTask.Type }));
+            _logBotLocationsDetailed.AddRange(
+                _instance.Bots.Select(b =>
+                    new BotLocationDetailedDatapoint
+                    {
+                        BotId = b.ID,
+                        Tier = b.Tier.ID,
+                        X = b.X,
+                        Y = b.Y,
+                        TimeStamp = currentTime - _instance.StatTimeStart,
+                        Task = (b.CurrentTask?.Type ?? BotTaskType.None).ToString()
+                    }));
             // Flush on getting too big
             if (_logLocationPolling.Count >= Instance.STAT_MAX_DATA_POINTS)
                 FlushLocationsPolled();
+            if (_logBotLocationsDetailed.Count >= Instance.STAT_MAX_DATA_POINTS)
+                FlushBotLocationsDetailed();
         }
         // Monitor storage location info
         if (currentTime >= _nextSnapshotStorageLocationInfoPolling)
@@ -1022,6 +1066,7 @@ public class SimulationObserver : IUpdateable
             // Flush on getting too big
             if (_logWellSortednessPolling.Count >= Instance.STAT_MAX_DATA_POINTS)
                 FlushWellSortednessPolled();
+            FlushBotLocationsDetailed();
         }
         // Monitor performance
         if (currentTime >= _nextSnapshotPerformancePolling)

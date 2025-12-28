@@ -27,17 +27,17 @@ internal class StorageAreaAndHallsGenerator
         this.stationGenerator = stationGenerator;
     }
 
-    public void createAisleHorizontally(int row, int startColumn, directions directionHorizontally, directions directionCrossPoint)
+    public void createAisleHorizontally(int row, int startColumn, Directions directionHorizontally, Directions directionCrossPoint)
     {
         var endColumn = lc.lengthStorageArea() - 2 * lc.WidthRingway;
         var lengthBlock = lc.HorizontalLengthBlock + lc.widthAisles();
         for (var column = startColumn; column < startColumn + endColumn; column++)
         {
-            directions d;
+            Directions d;
             if ((column - startColumn) % lengthBlock == lengthBlock - 1 || (!lc.SingleLane && (column - startColumn) % lengthBlock == lengthBlock - 2))
             {
                 d = directionCrossPoint;
-                directionCrossPoint = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : directionCrossPoint.Equals(directions.NorthWest) ? directions.SouthWest : directionCrossPoint.Equals(directions.SouthWest) ? directions.NorthWest : directionCrossPoint.Equals(directions.EastNorth) ? directions.EastSouth : directionCrossPoint.Equals(directions.EastSouth) ? directions.EastNorth : directions.Invalid;
+                directionCrossPoint = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : directionCrossPoint.Equals(Directions.NorthWest) ? Directions.SouthWest : directionCrossPoint.Equals(Directions.SouthWest) ? Directions.NorthWest : directionCrossPoint.Equals(Directions.EastNorth) ? Directions.EastSouth : directionCrossPoint.Equals(Directions.EastSouth) ? Directions.EastNorth : Directions.Invalid;
             }
             else
             {
@@ -56,37 +56,37 @@ internal class StorageAreaAndHallsGenerator
         }
 
         //the main part of this space
-        var d = lc.CounterClockwiseRingwayDirection ? directions.East : directions.West;
+        var d = lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.West;
         for (var i = 0; i < width; i++)
         {
             for (var j = 2; j < length; j++)
             {
                 createTile_Road(row + i, column + j, d);
             }
-            d = d.Equals(directions.East) ? directions.West : directions.East;
+            d = d.Equals(Directions.East) ? Directions.West : Directions.East;
         }
 
         //side at the workstations
         for (var i = 1; i < width - 1; i += 2)
         {
-            d = isEntrance(row + i, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.EastSouthWest : lc.CounterClockwiseRingwayDirection ? directions.North : directions.EastSouth;
+            d = isEntrance(row + i, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.EastSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.EastSouth;
             createTile_Road(row + i, column, d);
-            d = lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.EastNorth;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.EastNorth;
             createTile_Road(row + i, column + 1, d);
-            d = isEntrance(row + i + 1, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastNorthWest : directions.SouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.South;
+            d = isEntrance(row + i + 1, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastNorthWest : Directions.SouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.South;
             createTile_Road(row + i + 1, column, d);
-            d = lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.NorthWest;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.NorthWest;
             createTile_Road(row + i + 1, column + 1, d);
         }
 
         //the corners
-        d = isEntrance(row, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastWest : directions.SouthWest : lc.CounterClockwiseRingwayDirection ? directions.East : directions.South;
+        d = isEntrance(row, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastWest : Directions.SouthWest : lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.South;
         createTile_Road(row, column, d);
-        d = lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.West;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.West;
         createTile_Road(row, column + 1, d);
-        d = isEntrance(row + width - 1, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.EastWest : lc.CounterClockwiseRingwayDirection ? directions.North : directions.East;
+        d = isEntrance(row + width - 1, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.EastWest : lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.East;
         createTile_Road(row + width - 1, column, d);
-        d = lc.CounterClockwiseRingwayDirection ? directions.West : directions.EastNorth;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.West : Directions.EastNorth;
         createTile_Road(row + width - 1, column + 1, d);
     }
 
@@ -98,37 +98,37 @@ internal class StorageAreaAndHallsGenerator
         }
 
         //the main part of this space
-        var d = lc.CounterClockwiseRingwayDirection ? directions.East : directions.West;
+        var d = lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.West;
         for (var i = 0; i < width; i++)
         {
             for (var j = 0; j < length - 2; j++)
             {
                 createTile_Road(row + i, column + j, d);
             }
-            d = d.Equals(directions.East) ? directions.West : directions.East;
+            d = d.Equals(Directions.East) ? Directions.West : Directions.East;
         }
 
         //side at the workstations
         for (var i = 1; i < width - 1; i += 2)
         {
-            d = lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.EastSouth;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.EastSouth;
             createTile_Road(row + i, column + length - 2, d);
-            d = isEntrance(row + i, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastSouthWest : directions.EastNorth : lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.North;
+            d = isEntrance(row + i, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastSouthWest : Directions.EastNorth : lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.North;
             createTile_Road(row + i, column + length - 1, d);
-            d = lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.SouthWest;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.SouthWest;
             createTile_Road(row + i + 1, column + length - 2, d);
-            d = isEntrance(row + i + 1, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.EastNorthWest : lc.CounterClockwiseRingwayDirection ? directions.South : directions.NorthWest;
+            d = isEntrance(row + i + 1, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.EastNorthWest : lc.CounterClockwiseRingwayDirection ? Directions.South : Directions.NorthWest;
             createTile_Road(row + i + 1, column + length - 1, d);
         }
 
         //the corners
-        d = lc.CounterClockwiseRingwayDirection ? directions.East : directions.SouthWest;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.SouthWest;
         createTile_Road(row, column + length - 2, d);
-        d = isEntrance(row, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.EastWest : lc.CounterClockwiseRingwayDirection ? directions.South : directions.West;
+        d = isEntrance(row, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.EastWest : lc.CounterClockwiseRingwayDirection ? Directions.South : Directions.West;
         createTile_Road(row, column + length - 1, d);
-        d = lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.East;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.East;
         createTile_Road(row + width - 1, column + length - 2, d);
-        d = isEntrance(row + width - 1, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastWest : directions.EastNorth : lc.CounterClockwiseRingwayDirection ? directions.West : directions.North;
+        d = isEntrance(row + width - 1, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastWest : Directions.EastNorth : lc.CounterClockwiseRingwayDirection ? Directions.West : Directions.North;
         createTile_Road(row + width - 1, column + length - 1, d);
     }
 
@@ -140,37 +140,37 @@ internal class StorageAreaAndHallsGenerator
         }
 
         //the main part of this space
-        var d = lc.CounterClockwiseRingwayDirection ? directions.North : directions.South;
+        var d = lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.South;
         for (var j = 0; j < length; j++)
         {
             for (var i = 2; i < width; i++)
             {
                 createTile_Road(row + i, column + j, d);
             }
-            d = d.Equals(directions.North) ? directions.South : directions.North;
+            d = d.Equals(Directions.North) ? Directions.South : Directions.North;
         }
 
         //side at the workstations
         for (var j = 1; j < length - 1; j += 2)
         {
-            d = isEntrance(row, column + j, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastNorthSouth : directions.NorthWest : lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.West;
+            d = isEntrance(row, column + j, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastNorthSouth : Directions.NorthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.West;
             createTile_Road(row, column + j, d);
-            d = isEntrance(row, column + j + 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.NorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.East : directions.SouthWest;
+            d = isEntrance(row, column + j + 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.NorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.SouthWest;
             createTile_Road(row, column + j + 1, d);
-            d = lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.EastNorth;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.EastNorth;
             createTile_Road(row + 1, column + j, d);
-            d = lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.EastSouth;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.EastSouth;
             createTile_Road(row + 1, column + j + 1, d);
         }
 
         //the corners
-        d = isEntrance(row, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.NorthSouth : lc.CounterClockwiseRingwayDirection ? directions.East : directions.South;
+        d = isEntrance(row, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.NorthSouth : lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.South;
         createTile_Road(row, column, d);
-        d = lc.CounterClockwiseRingwayDirection ? directions.North : directions.EastSouth;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.EastSouth;
         createTile_Road(row + 1, column, d);
-        d = isEntrance(row, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.NorthSouth : directions.NorthWest : lc.CounterClockwiseRingwayDirection ? directions.South : directions.West;
+        d = isEntrance(row, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.NorthSouth : Directions.NorthWest : lc.CounterClockwiseRingwayDirection ? Directions.South : Directions.West;
         createTile_Road(row, column + length - 1, d);
-        d = lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.North;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.North;
         createTile_Road(row + 1, column + length - 1, d);
     }
 
@@ -182,37 +182,37 @@ internal class StorageAreaAndHallsGenerator
         }
 
         //the main part of this space
-        var d = lc.CounterClockwiseRingwayDirection ? directions.North : directions.South;
+        var d = lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.South;
         for (var j = 0; j < length; j++)
         {
             for (var i = 0; i < width - 2; i++)
             {
                 createTile_Road(row + i, column + j, d);
             }
-            d = d.Equals(directions.North) ? directions.South : directions.North;
+            d = d.Equals(Directions.North) ? Directions.South : Directions.North;
         }
 
         //side at the workstations
         for (var j = 1; j < length - 1; j += 2)
         {
-            d = lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.NorthWest;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.NorthWest;
             createTile_Road(row + width - 2, column + j, d);
-            d = lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.SouthWest;
+            d = lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.SouthWest;
             createTile_Road(row + width - 2, column + j + 1, d);
-            d = isEntrance(row + width - 1, column + j, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.EastNorthSouth : lc.CounterClockwiseRingwayDirection ? directions.West : directions.EastNorth;
+            d = isEntrance(row + width - 1, column + j, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.EastNorthSouth : lc.CounterClockwiseRingwayDirection ? Directions.West : Directions.EastNorth;
             createTile_Road(row + width - 1, column + j, d);
-            d = isEntrance(row + width - 1, column + j + 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.NorthSouthWest : directions.EastSouth : lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.East;
+            d = isEntrance(row + width - 1, column + j + 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.NorthSouthWest : Directions.EastSouth : lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.East;
             createTile_Road(row + width - 1, column + j + 1, d);
         }
 
         //the corners
-        d = lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.South;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.South;
         createTile_Road(row + width - 2, column, d);
-        d = isEntrance(row + width - 1, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.NorthSouth : directions.EastSouth : lc.CounterClockwiseRingwayDirection ? directions.North : directions.East;
+        d = isEntrance(row + width - 1, column, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.NorthSouth : Directions.EastSouth : lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.East;
         createTile_Road(row + width - 1, column, d);
-        d = lc.CounterClockwiseRingwayDirection ? directions.South : directions.NorthWest;
+        d = lc.CounterClockwiseRingwayDirection ? Directions.South : Directions.NorthWest;
         createTile_Road(row + width - 2, column + length - 1, d);
-        d = isEntrance(row + width - 1, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.NorthSouth : lc.CounterClockwiseRingwayDirection ? directions.West : directions.North;
+        d = isEntrance(row + width - 1, column + length - 1, stationGenerator.coordinatesStationEntrances) ? lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.NorthSouth : lc.CounterClockwiseRingwayDirection ? Directions.West : Directions.North;
         createTile_Road(row + width - 1, column + length - 1, d);
     }
 
@@ -225,7 +225,7 @@ internal class StorageAreaAndHallsGenerator
         // Init
         List<int> rowIndices = null; List<int> columnIndices = null;
         Func<bool> firstRowForward = null; Func<bool> firstColumnForward = null;
-        Func<int, int, bool, bool, directions> getDirection = null;
+        Func<int, int, bool, bool, Directions> getDirection = null;
 
         // Setup depending on field to generate
         switch (field)
@@ -376,10 +376,10 @@ internal class StorageAreaAndHallsGenerator
         var nAisles = lc.NrVerticalAisles;
         var blockLength = lc.HorizontalLengthBlock;
         var outwardPossible = lc.hasStationsNorth();
-        var forward = lc.AislesTwoDirectional ? directions.EastSouthWest : lc.CounterClockwiseRingwayDirection ? directions.East : directions.West;
-        var forwardAndInward = lc.AislesTwoDirectional ? directions.EastSouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.SouthWest;
-        var forwardAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.NorthWest;
-        var forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastNorthSouth : directions.NorthSouthWest;
+        var forward = lc.AislesTwoDirectional ? Directions.EastSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.West;
+        var forwardAndInward = lc.AislesTwoDirectional ? Directions.EastSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.SouthWest;
+        var forwardAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.NorthWest;
+        var forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastNorthSouth : Directions.NorthSouthWest;
         var row = rowNorthWestCornerRingway;
         var column = columnNorthWestCornerRingway + 1;
         var horizontal = true;
@@ -391,10 +391,10 @@ internal class StorageAreaAndHallsGenerator
         nAisles = lc.NrVerticalAisles;
         blockLength = lc.HorizontalLengthBlock;
         outwardPossible = lc.hasStationsSouth();
-        forward = lc.AislesTwoDirectional ? directions.EastNorthWest : lc.CounterClockwiseRingwayDirection ? directions.West : directions.East;
-        forwardAndInward = lc.AislesTwoDirectional ? directions.EastNorthWest : lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.EastNorth;
-        forwardAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.EastSouth;
-        forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.NorthSouthWest : directions.EastNorthSouth;
+        forward = lc.AislesTwoDirectional ? Directions.EastNorthWest : lc.CounterClockwiseRingwayDirection ? Directions.West : Directions.East;
+        forwardAndInward = lc.AislesTwoDirectional ? Directions.EastNorthWest : lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.EastNorth;
+        forwardAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.EastSouth;
+        forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.NorthSouthWest : Directions.EastNorthSouth;
         row = rowNorthWestCornerRingway + lc.widthStorageArea() - 1;
         column = columnNorthWestCornerRingway + 1;
         horizontal = true;
@@ -406,10 +406,10 @@ internal class StorageAreaAndHallsGenerator
         nAisles = lc.NrHorizontalAisles;
         blockLength = lc.VerticalLengthBlock;
         outwardPossible = lc.hasStationsWest();
-        forward = lc.AislesTwoDirectional ? directions.EastNorthSouth : lc.CounterClockwiseRingwayDirection ? directions.North : directions.South;
-        forwardAndInward = lc.AislesTwoDirectional ? directions.EastNorthSouth : lc.CounterClockwiseRingwayDirection ? directions.EastNorth : directions.EastSouth;
-        forwardAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.NorthWest : directions.SouthWest;
-        forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastNorthWest : directions.EastSouthWest;
+        forward = lc.AislesTwoDirectional ? Directions.EastNorthSouth : lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.South;
+        forwardAndInward = lc.AislesTwoDirectional ? Directions.EastNorthSouth : lc.CounterClockwiseRingwayDirection ? Directions.EastNorth : Directions.EastSouth;
+        forwardAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.NorthWest : Directions.SouthWest;
+        forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastNorthWest : Directions.EastSouthWest;
         row = rowNorthWestCornerRingway + 1;
         column = columnNorthWestCornerRingway;
         horizontal = false;
@@ -421,10 +421,10 @@ internal class StorageAreaAndHallsGenerator
         nAisles = lc.NrHorizontalAisles;
         blockLength = lc.VerticalLengthBlock;
         outwardPossible = lc.hasStationsEast();
-        forward = lc.AislesTwoDirectional ? directions.NorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.South : directions.North;
-        forwardAndInward = lc.AislesTwoDirectional ? directions.NorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.NorthWest;
-        forwardAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastSouth : directions.EastNorth;
-        forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastSouthWest : directions.EastNorthWest;
+        forward = lc.AislesTwoDirectional ? Directions.NorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.South : Directions.North;
+        forwardAndInward = lc.AislesTwoDirectional ? Directions.NorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.NorthWest;
+        forwardAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastSouth : Directions.EastNorth;
+        forwardsInwardsAndOutwards = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastSouthWest : Directions.EastNorthWest;
         row = rowNorthWestCornerRingway + 1;
         column = columnNorthWestCornerRingway + lc.lengthStorageArea() - 1;
         horizontal = false;
@@ -432,7 +432,7 @@ internal class StorageAreaAndHallsGenerator
         createRingwaySideWithoutCorners(firstAisleOutward, size, outwardPossible, nAisles, blockLength, forward, forwardAndInward, forwardAndOutwards, forwardsInwardsAndOutwards, row, column, horizontal);
     }
 
-    public void createRingwaySideWithoutCorners(bool firstAisleOutward, int size, bool outwardPossible, int nAisles, int blockLength, directions forward, directions forwardAndInward, directions forwardAndOutwards, directions forwardsInwardsAndOutwards, int row, int column, bool horizontal)
+    public void createRingwaySideWithoutCorners(bool firstAisleOutward, int size, bool outwardPossible, int nAisles, int blockLength, Directions forward, Directions forwardAndInward, Directions forwardAndOutwards, Directions forwardsInwardsAndOutwards, int row, int column, bool horizontal)
     {
         var outward = createRingwaySideWithoutCorners_creatOutwardPossible(size, outwardPossible, firstAisleOutward);
         var inward = createRingwaySideWithoutCorners_creatInwardPossible(size, blockLength, nAisles, firstAisleOutward);
@@ -505,13 +505,13 @@ internal class StorageAreaAndHallsGenerator
         //north west corner
         var row = rowNorthWestCornerRingway;
         var column = columnNorthWestCornerRingway;
-        var directionHorizontally = lc.CounterClockwiseRingwayDirection ? directions.East : directions.West;
-        var directionVertically = lc.CounterClockwiseRingwayDirection ? directions.North : directions.South;
+        var directionHorizontally = lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.West;
+        var directionVertically = lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.South;
         var useDirectionHorizontally = lc.CounterClockwiseRingwayDirection ? true : lc.hasStationsWest();
         var useDirectionVertically = lc.CounterClockwiseRingwayDirection ? lc.hasStationsNorth() : true;
         if (lc.AislesTwoDirectional)
         {
-            var d = lc.hasStationsWest() ? lc.hasStationsNorth() ? directions.EastNorthSouthWest : directions.EastSouthWest : lc.hasStationsNorth() ? directions.EastNorthSouth : directions.EastSouth;
+            var d = lc.hasStationsWest() ? lc.hasStationsNorth() ? Directions.EastNorthSouthWest : Directions.EastSouthWest : lc.hasStationsNorth() ? Directions.EastNorthSouth : Directions.EastSouth;
             createTile_Road(row, column, d);
         }
         else
@@ -522,13 +522,13 @@ internal class StorageAreaAndHallsGenerator
         //north east corner
         row = rowNorthWestCornerRingway;
         column = columnNorthWestCornerRingway + lc.lengthStorageArea() - 1;
-        directionHorizontally = lc.CounterClockwiseRingwayDirection ? directions.East : directions.West;
-        directionVertically = lc.CounterClockwiseRingwayDirection ? directions.South : directions.North;
+        directionHorizontally = lc.CounterClockwiseRingwayDirection ? Directions.East : Directions.West;
+        directionVertically = lc.CounterClockwiseRingwayDirection ? Directions.South : Directions.North;
         useDirectionHorizontally = lc.CounterClockwiseRingwayDirection ? lc.hasStationsEast() : true;
         useDirectionVertically = lc.CounterClockwiseRingwayDirection ? true : lc.hasStationsNorth();
         if (lc.AislesTwoDirectional)
         {
-            var d = lc.hasStationsEast() ? lc.hasStationsNorth() ? directions.EastNorthSouthWest : directions.EastSouthWest : lc.hasStationsNorth() ? directions.NorthSouthWest : directions.SouthWest;
+            var d = lc.hasStationsEast() ? lc.hasStationsNorth() ? Directions.EastNorthSouthWest : Directions.EastSouthWest : lc.hasStationsNorth() ? Directions.NorthSouthWest : Directions.SouthWest;
             createTile_Road(row, column, d);
         }
         else
@@ -539,13 +539,13 @@ internal class StorageAreaAndHallsGenerator
         //south west corner
         row = rowNorthWestCornerRingway + lc.widthStorageArea() - 1;
         column = columnNorthWestCornerRingway;
-        directionHorizontally = lc.CounterClockwiseRingwayDirection ? directions.West : directions.East;
-        directionVertically = lc.CounterClockwiseRingwayDirection ? directions.North : directions.South;
+        directionHorizontally = lc.CounterClockwiseRingwayDirection ? Directions.West : Directions.East;
+        directionVertically = lc.CounterClockwiseRingwayDirection ? Directions.North : Directions.South;
         useDirectionHorizontally = lc.CounterClockwiseRingwayDirection ? lc.hasStationsWest() : true;
         useDirectionVertically = lc.CounterClockwiseRingwayDirection ? true : lc.hasStationsSouth();
         if (lc.AislesTwoDirectional)
         {
-            var d = lc.hasStationsWest() ? lc.hasStationsSouth() ? directions.EastNorthSouthWest : directions.EastNorthWest : lc.hasStationsSouth() ? directions.EastNorthSouth : directions.EastNorth;
+            var d = lc.hasStationsWest() ? lc.hasStationsSouth() ? Directions.EastNorthSouthWest : Directions.EastNorthWest : lc.hasStationsSouth() ? Directions.EastNorthSouth : Directions.EastNorth;
             createTile_Road(row, column, d);
         }
         else
@@ -556,13 +556,13 @@ internal class StorageAreaAndHallsGenerator
         //south east corner
         row = rowNorthWestCornerRingway + lc.widthStorageArea() - 1;
         column = columnNorthWestCornerRingway + lc.lengthStorageArea() - 1;
-        directionHorizontally = lc.CounterClockwiseRingwayDirection ? directions.West : directions.East;
-        directionVertically = lc.CounterClockwiseRingwayDirection ? directions.South : directions.North;
+        directionHorizontally = lc.CounterClockwiseRingwayDirection ? Directions.West : Directions.East;
+        directionVertically = lc.CounterClockwiseRingwayDirection ? Directions.South : Directions.North;
         useDirectionHorizontally = lc.CounterClockwiseRingwayDirection ? true : lc.hasStationsEast();
         useDirectionVertically = lc.CounterClockwiseRingwayDirection ? lc.hasStationsSouth() : true;
         if (lc.AislesTwoDirectional)
         {
-            var d = lc.hasStationsEast() ? lc.hasStationsSouth() ? directions.EastNorthSouthWest : directions.EastNorthWest : lc.hasStationsSouth() ? directions.NorthSouthWest : directions.NorthWest;
+            var d = lc.hasStationsEast() ? lc.hasStationsSouth() ? Directions.EastNorthSouthWest : Directions.EastNorthWest : lc.hasStationsSouth() ? Directions.NorthSouthWest : Directions.NorthWest;
             createTile_Road(row, column, d);
         }
         else
@@ -571,11 +571,11 @@ internal class StorageAreaAndHallsGenerator
         }
     }
 
-    public void createRingwayCorner(int row, int column, directions directionHorizontally, directions directionVertically, bool useDirectionHorizontally, bool useDirectionVertically)
+    public void createRingwayCorner(int row, int column, Directions directionHorizontally, Directions directionVertically, bool useDirectionHorizontally, bool useDirectionVertically)
     {
         if (useDirectionHorizontally && useDirectionVertically)
         {
-            var d = directionHorizontally.Equals(directions.West) ? directionVertically.Equals(directions.North) ? directions.NorthWest : directions.SouthWest : directionVertically.Equals(directions.North) ? directions.EastNorth : directions.EastSouth;
+            var d = directionHorizontally.Equals(Directions.West) ? directionVertically.Equals(Directions.North) ? Directions.NorthWest : Directions.SouthWest : directionVertically.Equals(Directions.North) ? Directions.EastNorth : Directions.EastSouth;
             createTile_Road(row, column, d);
         }
         else if (useDirectionHorizontally)
@@ -588,7 +588,7 @@ internal class StorageAreaAndHallsGenerator
         }
         else
         {
-            createTile_Road(row, column, directions.Invalid);
+            createTile_Road(row, column, Directions.Invalid);
         }
     }
 
@@ -596,27 +596,27 @@ internal class StorageAreaAndHallsGenerator
     {
         for (var storageLocation = 0; storageLocation < lc.HorizontalLengthBlock; storageLocation++)
         {
-            createTile_StorageLocation(row, column++, directions.EastNorthSouthWest);
+            createTile_StorageLocation(row, column++, Directions.EastNorthSouthWest);
         }
     }
 
     public void createRowWithStorageLocations(int row, int column)
     {
-        var d = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.EastSouthWest : directions.EastNorthWest;
+        var d = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.EastSouthWest : Directions.EastNorthWest;
         for (var crossAisle = 0; crossAisle < lc.NrVerticalAisles; crossAisle++)
         {
             createRowOfStorageBlock(ref row, ref column); //storage locations to the left of the cross-aisle
             createTile_Road(row, column++, d); //the cross aisle segment;
             if (!lc.SingleLane)
             {
-                d = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : d.Equals(directions.EastSouthWest) ? directions.EastNorthWest : directions.EastSouthWest;
+                d = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : d.Equals(Directions.EastSouthWest) ? Directions.EastNorthWest : Directions.EastSouthWest;
                 createTile_Road(row, column++, d); //an additional cross aisle segment;
             }
             if (crossAisle == lc.NrVerticalAisles - 1)
             {
                 createRowOfStorageBlock(ref row, ref column); //if it is the last cross-aisle, it also need to create the storage locations to its right since no other cross-aisle will do that
             }
-            d = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : d.Equals(directions.EastSouthWest) ? directions.EastNorthWest : directions.EastSouthWest;
+            d = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : d.Equals(Directions.EastSouthWest) ? Directions.EastNorthWest : Directions.EastSouthWest;
         }
     }
 
@@ -637,7 +637,7 @@ internal class StorageAreaAndHallsGenerator
                     var width = lc.widthStorageArea();
                     if (lc.AislesTwoDirectional)
                     {
-                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, directions.West, stationGenerator.coordinatesStationEntrances);
+                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, Directions.West, stationGenerator.coordinatesStationEntrances);
                     }
                     else
                     {
@@ -652,7 +652,7 @@ internal class StorageAreaAndHallsGenerator
                     var width = lc.widthStorageArea();
                     if (lc.AislesTwoDirectional)
                     {
-                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, directions.East, stationGenerator.coordinatesStationEntrances);
+                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, Directions.East, stationGenerator.coordinatesStationEntrances);
                     }
                     else
                     {
@@ -667,7 +667,7 @@ internal class StorageAreaAndHallsGenerator
                     var width = lc.WidthHall;
                     if (lc.AislesTwoDirectional)
                     {
-                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, directions.South, stationGenerator.coordinatesStationEntrances);
+                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, Directions.South, stationGenerator.coordinatesStationEntrances);
                     }
                     else
                     {
@@ -682,7 +682,7 @@ internal class StorageAreaAndHallsGenerator
                     var width = lc.WidthHall;
                     if (lc.AislesTwoDirectional)
                     {
-                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, directions.North, stationGenerator.coordinatesStationEntrances);
+                        createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(row, column, length, width, Directions.North, stationGenerator.coordinatesStationEntrances);
                     }
                     else
                     {
@@ -708,15 +708,15 @@ internal class StorageAreaAndHallsGenerator
         }
     }
 
-    public void createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(int startRow, int startColumn, int length, int width, directions sideWithFourDirections, HashSet<Coordinate> coordinatesEntrances)
+    public void createSpaceBetweenStorageAreaAndStations_TwoDirectionalCase(int startRow, int startColumn, int length, int width, Directions sideWithFourDirections, HashSet<Coordinate> coordinatesEntrances)
     {
-        if (!sideWithFourDirections.Equals(directions.East) && !sideWithFourDirections.Equals(directions.West) && !sideWithFourDirections.Equals(directions.South) && !sideWithFourDirections.Equals(directions.North))
+        if (!sideWithFourDirections.Equals(Directions.East) && !sideWithFourDirections.Equals(Directions.West) && !sideWithFourDirections.Equals(Directions.South) && !sideWithFourDirections.Equals(Directions.North))
         {
             throw new ArgumentException("sideOfHallWithFourDirections is not east, north, west or south as it should be, sideOfHallWithFourDirections: " + sideWithFourDirections);
         }
 
         //inner part
-        var d = directions.EastNorthSouthWest;
+        var d = Directions.EastNorthSouthWest;
         for (var row = startRow + 1; row < startRow + width - 1; row++)
         {
             for (var column = startColumn + 1; column < startColumn + length - 1; column++)
@@ -728,7 +728,7 @@ internal class StorageAreaAndHallsGenerator
         //north parth without corners
         for (var column = startColumn + 1; column < startColumn + length - 1; column++)
         {
-            d = isEntrance(startRow, column, coordinatesEntrances) || sideWithFourDirections.Equals(directions.North) ? directions.EastNorthSouthWest : directions.EastSouthWest;
+            d = isEntrance(startRow, column, coordinatesEntrances) || sideWithFourDirections.Equals(Directions.North) ? Directions.EastNorthSouthWest : Directions.EastSouthWest;
             createTile_Road(startRow, column, d);
         }
 
@@ -736,14 +736,14 @@ internal class StorageAreaAndHallsGenerator
         for (var column = startColumn + 1; column < startColumn + length - 1; column++)
         {
             var row = startRow + width - 1;
-            d = isEntrance(row, column, coordinatesEntrances) || sideWithFourDirections.Equals(directions.South) ? directions.EastNorthSouthWest : directions.EastNorthWest;
+            d = isEntrance(row, column, coordinatesEntrances) || sideWithFourDirections.Equals(Directions.South) ? Directions.EastNorthSouthWest : Directions.EastNorthWest;
             createTile_Road(row, column, d);
         }
 
         //west parth without corners
         for (var row = startRow + 1; row < startRow + width - 1; row++)
         {
-            d = isEntrance(row, startColumn, coordinatesEntrances) || sideWithFourDirections.Equals(directions.West) ? directions.EastNorthSouthWest : directions.EastNorthSouth;
+            d = isEntrance(row, startColumn, coordinatesEntrances) || sideWithFourDirections.Equals(Directions.West) ? Directions.EastNorthSouthWest : Directions.EastNorthSouth;
             createTile_Road(row, startColumn, d);
         }
 
@@ -751,40 +751,40 @@ internal class StorageAreaAndHallsGenerator
         for (var row = startRow + 1; row < startRow + width - 1; row++)
         {
             var column = startColumn + length - 1;
-            d = isEntrance(row, column, coordinatesEntrances) || sideWithFourDirections.Equals(directions.East) ? directions.EastNorthSouthWest : directions.NorthSouthWest;
+            d = isEntrance(row, column, coordinatesEntrances) || sideWithFourDirections.Equals(Directions.East) ? Directions.EastNorthSouthWest : Directions.NorthSouthWest;
             createTile_Road(row, column, d);
         }
 
         //north west corner
         var rowCorner = startRow;
         var columnCorner = startColumn;
-        d = sideWithFourDirections.Equals(directions.West) ? directions.EastSouthWest : sideWithFourDirections.Equals(directions.North) ? directions.EastNorthSouth : directions.EastSouth;
+        d = sideWithFourDirections.Equals(Directions.West) ? Directions.EastSouthWest : sideWithFourDirections.Equals(Directions.North) ? Directions.EastNorthSouth : Directions.EastSouth;
         createTile_Road(rowCorner, columnCorner, d);
 
         //north east corner
         rowCorner = startRow;
         columnCorner = startColumn + length - 1;
-        d = sideWithFourDirections.Equals(directions.East) ? directions.EastSouthWest : sideWithFourDirections.Equals(directions.North) ? directions.NorthSouthWest : directions.SouthWest;
+        d = sideWithFourDirections.Equals(Directions.East) ? Directions.EastSouthWest : sideWithFourDirections.Equals(Directions.North) ? Directions.NorthSouthWest : Directions.SouthWest;
         createTile_Road(rowCorner, columnCorner, d);
 
         //south west corner
         rowCorner = startRow + width - 1;
         columnCorner = startColumn;
-        d = sideWithFourDirections.Equals(directions.West) ? directions.EastNorthWest : sideWithFourDirections.Equals(directions.South) ? directions.EastNorthSouth : directions.EastNorth;
+        d = sideWithFourDirections.Equals(Directions.West) ? Directions.EastNorthWest : sideWithFourDirections.Equals(Directions.South) ? Directions.EastNorthSouth : Directions.EastNorth;
         createTile_Road(rowCorner, columnCorner, d);
 
         //south east corner
         rowCorner = startRow + width - 1;
         columnCorner = startColumn + length - 1;
-        d = sideWithFourDirections.Equals(directions.East) ? directions.EastNorthWest : sideWithFourDirections.Equals(directions.South) ? directions.NorthSouthWest : directions.NorthWest;
+        d = sideWithFourDirections.Equals(Directions.East) ? Directions.EastNorthWest : sideWithFourDirections.Equals(Directions.South) ? Directions.NorthSouthWest : Directions.NorthWest;
         createTile_Road(rowCorner, columnCorner, d);
     }
 
     public void createStorageArea(int row, int column)
     {
         createRingWay(row++, column++);
-        var directionHorizontally = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.NorthSouthWest : directions.EastNorthSouth;
-        var directionCrossPoint = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? directions.SouthWest : directions.EastNorth;
+        var directionHorizontally = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.NorthSouthWest : Directions.EastNorthSouth;
+        var directionCrossPoint = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : lc.CounterClockwiseRingwayDirection ? Directions.SouthWest : Directions.EastNorth;
 
         for (var aisle = 0; aisle < lc.NrHorizontalAisles; aisle++)
         {
@@ -796,8 +796,8 @@ internal class StorageAreaAndHallsGenerator
             createAisleHorizontally(row++, column, directionHorizontally, directionCrossPoint);
             if (!lc.SingleLane)
             {
-                directionHorizontally = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : directionHorizontally.Equals(directions.NorthSouthWest) ? directions.EastNorthSouth : directions.NorthSouthWest;
-                directionCrossPoint = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : directionCrossPoint.Equals(directions.SouthWest) ? directions.EastSouth : directionCrossPoint.Equals(directions.NorthWest) ? directions.EastNorth : directionCrossPoint.Equals(directions.EastSouth) ? directions.SouthWest : directionCrossPoint.Equals(directions.EastNorth) ? directions.NorthWest : directions.Invalid;
+                directionHorizontally = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : directionHorizontally.Equals(Directions.NorthSouthWest) ? Directions.EastNorthSouth : Directions.NorthSouthWest;
+                directionCrossPoint = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : directionCrossPoint.Equals(Directions.SouthWest) ? Directions.EastSouth : directionCrossPoint.Equals(Directions.NorthWest) ? Directions.EastNorth : directionCrossPoint.Equals(Directions.EastSouth) ? Directions.SouthWest : directionCrossPoint.Equals(Directions.EastNorth) ? Directions.NorthWest : Directions.Invalid;
                 createAisleHorizontally(row++, column, directionHorizontally, directionCrossPoint); //an additional aisle segment
             }
 
@@ -806,12 +806,12 @@ internal class StorageAreaAndHallsGenerator
                 createRowWithStorageLocations(row++, column);
                 createRowWithStorageLocations(row++, column);
             }
-            directionHorizontally = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : directionHorizontally.Equals(directions.NorthSouthWest) ? directions.EastNorthSouth : directions.NorthSouthWest;
-            directionCrossPoint = lc.AislesTwoDirectional ? directions.EastNorthSouthWest : directionCrossPoint.Equals(directions.SouthWest) ? directions.EastSouth : directionCrossPoint.Equals(directions.NorthWest) ? directions.EastNorth : directionCrossPoint.Equals(directions.EastSouth) ? directions.SouthWest : directionCrossPoint.Equals(directions.EastNorth) ? directions.NorthWest : directions.Invalid;
+            directionHorizontally = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : directionHorizontally.Equals(Directions.NorthSouthWest) ? Directions.EastNorthSouth : Directions.NorthSouthWest;
+            directionCrossPoint = lc.AislesTwoDirectional ? Directions.EastNorthSouthWest : directionCrossPoint.Equals(Directions.SouthWest) ? Directions.EastSouth : directionCrossPoint.Equals(Directions.NorthWest) ? Directions.EastNorth : directionCrossPoint.Equals(Directions.EastSouth) ? Directions.SouthWest : directionCrossPoint.Equals(Directions.EastNorth) ? Directions.NorthWest : Directions.Invalid;
         }
     }
 
-    public void createTile_StorageLocation(int row, int column, directions d)
+    public void createTile_StorageLocation(int row, int column, Directions d)
     {
         var wp = instance.CreateWaypoint(instance.RegisterWaypointID(), tier, column + 0.5, row + 0.5, true, false);
         if (tiles[row, column] != null)
@@ -821,7 +821,7 @@ internal class StorageAreaAndHallsGenerator
         tiles[row, column] = new Tile(d, wp, waypointTypes.StorageLocation);
     }
 
-    public void createTile_Road(int row, int column, directions d)
+    public void createTile_Road(int row, int column, Directions d)
     {
         var wp = instance.CreateWaypoint(instance.RegisterWaypointID(), tier, column + 0.5, row + 0.5, false, false);
         if (tiles[row, column] != null)
