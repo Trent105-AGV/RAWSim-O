@@ -39,6 +39,11 @@ public interface ISimulationHostService : IService<ISimulationHostService>
     UnaryResult<bool> ResumeSimulation();
 
     /// <summary>
+    /// Download statistics of a finished simulation
+    /// </summary>
+    UnaryResult<DownloadStatisticsResponse> DownloadStatistics(DownloadStatisticsRequest request);
+
+    /// <summary>
     /// Get the latest rendered frame
     /// </summary>
     UnaryResult<RenderFrameResponse> GetLatestFrame(RenderFrameRequest request);

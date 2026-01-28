@@ -34,6 +34,18 @@ public sealed record EndSimulationResponse(
 );
 
 [MessagePackObject]
+public sealed record DownloadStatisticsRequest(
+    [property: Key(0)] string OutputDirName
+);
+
+[MessagePackObject]
+public sealed record DownloadStatisticsResponse(
+    [property: Key(0)] string OutputDirName,
+    [property: Key(1)] string FileName,
+    [property: Key(2)] byte[] ZipBytes
+);
+
+[MessagePackObject]
 public sealed record StatusResponse(
     [property: Key(0)] bool Running,
     [property: Key(1)] double SimTime,
@@ -65,5 +77,6 @@ public sealed record StartResponse(
     [property: Key(0)] ESimulationStartResult Result,
     [property: Key(1)] string? Error = null
 );
+
 
 #endregion

@@ -1,5 +1,3 @@
-using System.IO.Compression;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RAWSimO.Rendering2D;
@@ -14,8 +12,7 @@ namespace RAWSimO.WebServer.SimulationHost.Controllers;
 public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService)
 	: ControllerBase
 {
-	private const string StatisticsRootDirectory = "/app/out";
-	private static readonly Regex OutputDirNamePattern = new("^[A-Za-z0-9._-]+$", RegexOptions.Compiled);
+	
 
 	[HttpGet]
 	[AllowAnonymous]
@@ -47,41 +44,9 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 
 	[HttpGet]
 	[AllowAnonymous]
-	public IActionResult DownloadStatistics([FromQuery] string outputDirName)
+	public async Task<IActionResult> DownloadStatistics([FromQuery(Name = "output_dir_name")] string outputDirName)
 	{
-		if (string.IsNullOrWhiteSpace(outputDirName))
-			return BadRequest("outputDirName is required");
-		if (!OutputDirNamePattern.IsMatch(outputDirName))
-			return BadRequest("invalid outputDirName");
-
-		var baseFullPath = Path.GetFullPath(StatisticsRootDirectory);
-		if (!baseFullPath.EndsWith(Path.DirectorySeparatorChar))
-			baseFullPath += Path.DirectorySeparatorChar;
-
-		var targetDir = Path.GetFullPath(Path.Combine(StatisticsRootDirectory, outputDirName));
-		if (!targetDir.StartsWith(baseFullPath, StringComparison.Ordinal))
-			return BadRequest("invalid outputDirName");
-		if (!Directory.Exists(targetDir))
-			return NotFound("statistics directory not found");
-
-		Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "RAWSimO.WebServer", "downloads"));
-		var zipPath = Path.Combine(
-			Path.GetTempPath(),
-			"RAWSimO.WebServer",
-			"downloads",
-			$"{outputDirName}-{Guid.NewGuid():N}.zip");
-
-		ZipFile.CreateFromDirectory(targetDir, zipPath, CompressionLevel.Fastest, includeBaseDirectory: false);
-
-		var stream = new FileStream(
-			zipPath,
-			FileMode.Open,
-			FileAccess.Read,
-			FileShare.Read,
-			bufferSize: 64 * 1024,
-			options: FileOptions.Asynchronous | FileOptions.DeleteOnClose);
-
-		return File(stream, "application/zip", $"{outputDirName}.zip");
+		return Ok(await hostService.DownloadStatistics(new DownloadStatisticsRequest(outputDirName)));
 	}
 
 	[HttpPost]

@@ -24,18 +24,18 @@
   <AislesTwoDirectional>false</AislesTwoDirectional>
   <SingleLane>true</SingleLane>
   <NameLayout>RepoSmall</NameLayout>
-  <NrHorizontalAisles>8</NrHorizontalAisles>
-  <NrVerticalAisles>10</NrVerticalAisles>
-  <HorizontalLengthBlock>4</HorizontalLengthBlock>
+  <NrHorizontalAisles>8</NrHorizontalAisles><!--start at 0 8+1 = 9-->
+  <NrVerticalAisles>10</NrVerticalAisles><!--start at 0 10+1 = 11-->
+  <HorizontalLengthBlock>4</HorizontalLengthBlock><!--aisle width-->
   <WidthHall>2</WidthHall>
   <WidthBuffer>2</WidthBuffer>
   <DistanceEntryExitStation>3</DistanceEntryExitStation>
   <CounterClockwiseRingwayDirection>true</CounterClockwiseRingwayDirection>
   <NPickStationWest>0</NPickStationWest>
-  <NPickStationEast>4</NPickStationEast>
+  <NPickStationEast>4</NPickStationEast><!--eastMost pickstation 4x equal distance-->
   <NPickStationSouth>0</NPickStationSouth>
   <NPickStationNorth>0</NPickStationNorth>
-  <NReplenishmentStationWest>4</NReplenishmentStationWest>
+  <NReplenishmentStationWest>4</NReplenishmentStationWest><!--westMost pickstation 4x equal distance-->
   <NReplenishmentStationEast>0</NReplenishmentStationEast>
   <NReplenishmentStationSouth>0</NReplenishmentStationSouth>
   <NReplenishmentStationNorth>0</NReplenishmentStationNorth>

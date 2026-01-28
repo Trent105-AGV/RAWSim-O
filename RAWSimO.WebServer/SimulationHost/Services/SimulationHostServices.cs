@@ -28,6 +28,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 {
     private const string StatisticsRootDirectory = "/app/out";
 
+    private static readonly System.Text.RegularExpressions.Regex OutputDirNamePattern =
+        new("^[A-Za-z0-9._-]+$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private readonly Lock _gate = new();
     private readonly Simulation2DCommandBuilder _renderer = new();
 
@@ -117,7 +120,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             {
                 Action<string> logAction = Console.WriteLine;
 
-                var (instancePath, settingPath, controlConfigPath, additionalResourceDirectory, runInputDirectory) = ResolveInputs(request);
+                var (instancePath, settingPath, controlConfigPath, additionalResourceDirectory, runInputDirectory) =
+                    ResolveInputs(request);
 
                 var instance = InstanceIO.ReadInstance(
                     instancePath,
@@ -144,7 +148,14 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 Directory.CreateDirectory(instance.SettingConfig.StatisticsDirectory);
                 var logPath = Path.Combine(instance.SettingConfig.StatisticsDirectory, IOConstants.LOG_FILE);
-                _ = new StreamWriter(logPath, append: false) { AutoFlush = true };
+                var logWriter = new StreamWriter(logPath, append: false) { AutoFlush = true };
+                
+                // Wrap LogAction to write to both console and log file
+                instance.SettingConfig.LogAction = msg =>
+                {
+                    Console.WriteLine(msg);
+                    logWriter.WriteLine(msg);
+                };
 
                 _instance = instance;
 
@@ -234,6 +245,49 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         return UnaryResult.FromResult(response);
     }
 
+    public UnaryResult<DownloadStatisticsResponse> DownloadStatistics(DownloadStatisticsRequest request)
+    {
+        if (request is null)
+            throw new ArgumentNullException(nameof(request));
+
+        var outputDirName = request.OutputDirName;
+        if (string.IsNullOrWhiteSpace(outputDirName))
+            throw new ArgumentException("OutputDirName is required", nameof(request));
+        if (!OutputDirNamePattern.IsMatch(outputDirName))
+            throw new ArgumentException("Invalid OutputDirName", nameof(request));
+
+        var baseFullPath = Path.GetFullPath(StatisticsRootDirectory);
+        if (!baseFullPath.EndsWith(Path.DirectorySeparatorChar))
+            baseFullPath += Path.DirectorySeparatorChar;
+
+        var targetDir = Path.GetFullPath(Path.Combine(StatisticsRootDirectory, outputDirName));
+        if (!targetDir.StartsWith(baseFullPath, StringComparison.Ordinal))
+            throw new ArgumentException("Invalid OutputDirName", nameof(request));
+        if (!Directory.Exists(targetDir))
+            throw new DirectoryNotFoundException("Statistics directory not found");
+
+        // Create zip in memory (safe for typical stat sizes; avoids temp-file lifecycle issues).
+        using var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var filePath in Directory.EnumerateFiles(targetDir, "*", SearchOption.AllDirectories))
+            {
+                var rel = Path.GetRelativePath(targetDir, filePath);
+                var entry = archive.CreateEntry(rel, CompressionLevel.Fastest);
+                using var entryStream = entry.Open();
+                using var fileStream = File.OpenRead(filePath);
+                fileStream.CopyTo(entryStream);
+            }
+        }
+
+        var bytes = ms.ToArray();
+        var resp = new DownloadStatisticsResponse(
+            OutputDirName: outputDirName,
+            FileName: outputDirName + ".zip",
+            ZipBytes: bytes);
+        return UnaryResult.FromResult(resp);
+    }
+
     private static string MakeUniqueSubdirectoryName(string rootDir, string preferredName)
     {
         // Avoid collisions in the fixed /app/out root.
@@ -312,7 +366,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 throw new InvalidOperationException($"Invalid zip entry path: {entry.FullName}");
 
             // Directory entry
-            if (entry.FullName.EndsWith("/", StringComparison.Ordinal) || entry.FullName.EndsWith("\\", StringComparison.Ordinal))
+            if (entry.FullName.EndsWith("/", StringComparison.Ordinal) ||
+                entry.FullName.EndsWith("\\", StringComparison.Ordinal))
             {
                 Directory.CreateDirectory(destinationPath);
                 continue;
