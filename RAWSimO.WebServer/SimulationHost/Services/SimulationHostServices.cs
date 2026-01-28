@@ -43,6 +43,15 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     private Instance? _instance;
     private Exception? _lastError;
 
+    private sealed record CurrentRunInputs(
+        string Instance,
+        string Setting,
+        string ControlConfig,
+        int Seed,
+        string? Tag);
+
+    private CurrentRunInputs? _currentRunInputs;
+
     private volatile bool _isPaused;
 
     private volatile RenderFrameDto? _latestFrame;
@@ -81,8 +90,25 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     public UnaryResult<StatusResponse> GetStatus()
     {
-        var resp = new StatusResponse(IsRunning, SimTime, LastError);
-        return UnaryResult.FromResult(resp);
+        lock (_gate)
+        {
+            var running = _runTask is { IsCompleted: false };
+            var simTime = _instance?.Controller?.CurrentTime ?? 0;
+            var error = _lastError?.ToString();
+
+            var inputs = running ? _currentRunInputs : null;
+            var resp = new StatusResponse(
+                Running: running,
+                SimTime: simTime,
+                Error: error,
+                Instance: inputs?.Instance,
+                Setting: inputs?.Setting,
+                ControlConfig: inputs?.ControlConfig,
+                Seed: inputs?.Seed,
+                Tag: inputs?.Tag);
+
+            return UnaryResult.FromResult(resp);
+        }
     }
 
     public UnaryResult<StartResponse> StartSimulation(StartRequest request)
@@ -109,6 +135,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             _latestFrame = null;
             _isPaused = false;
             _statisticsOutputDirName = null;
+            _currentRunInputs = null;
 
             // Clean up previous run inputs if any (only used for inline-content mode).
             TryDeleteDirectory(_runInputDirectory);
@@ -138,6 +165,14 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 if (!string.IsNullOrWhiteSpace(request.Tag))
                     instance.Tag = request.Tag;
 
+                // Snapshot the inputs so the UI can restore form state when re-entering the page.
+                _currentRunInputs = new CurrentRunInputs(
+                    Instance: request.Instance,
+                    Setting: request.Setting,
+                    ControlConfig: request.ControlConfig,
+                    Seed: seed,
+                    Tag: request.Tag);
+
                 var statisticsFolder = instance.Name + "-" + instance.SettingConfig.Name + "-" +
                                        instance.ControllerConfig.Name + "-" + seed;
 
@@ -149,7 +184,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 Directory.CreateDirectory(instance.SettingConfig.StatisticsDirectory);
                 var logPath = Path.Combine(instance.SettingConfig.StatisticsDirectory, IOConstants.LOG_FILE);
                 var logWriter = new StreamWriter(logPath, append: false) { AutoFlush = true };
-                
+
                 // Wrap LogAction to write to both console and log file
                 instance.SettingConfig.LogAction = msg =>
                 {
@@ -172,6 +207,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 var token = _cts.Token;
                 _runTask = Task.Run(() => RunLoop(instance, token), token);
+                _ = _runTask.ContinueWith(OnRunTaskCompleted, CancellationToken.None,
+                    TaskContinuationOptions.None, TaskScheduler.Default);
                 var successResp = new StartResponse(ESimulationStartResult.Success);
                 _ = SafeBroadcast(() => hub.Clients.All.StartSimulation(startNotification));
                 return UnaryResult.FromResult(successResp);
@@ -181,6 +218,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 _lastError = ex;
                 _instance = null;
                 _statisticsOutputDirName = null;
+                _currentRunInputs = null;
                 _cts?.Dispose();
                 _cts = null;
                 _runTask = null;
@@ -189,6 +227,25 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 var errResp = new StartResponse(ESimulationStartResult.UnknownError, ex.Message);
                 return UnaryResult.FromResult(errResp);
             }
+        }
+    }
+
+    private void OnRunTaskCompleted(Task task)
+    {
+        // The simulation lifetime must not depend on any client connections.
+        // When the run loop ends (StopSimulation or crash), clear the in-memory instance and inputs.
+        lock (_gate)
+        {
+            if (task.IsFaulted && task.Exception is not null)
+                _lastError ??= task.Exception.GetBaseException();
+
+            _isPaused = false;
+            _instance = null;
+            _currentRunInputs = null;
+
+            _cts?.Dispose();
+            _cts = null;
+            _runTask = null;
         }
     }
 

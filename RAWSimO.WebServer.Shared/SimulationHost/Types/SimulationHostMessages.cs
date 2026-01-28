@@ -49,7 +49,13 @@ public sealed record DownloadStatisticsResponse(
 public sealed record StatusResponse(
     [property: Key(0)] bool Running,
     [property: Key(1)] double SimTime,
-    [property: Key(2)] string? Error
+    [property: Key(2)] string? Error,
+    // Running instance configuration snapshot (resource zip intentionally excluded)
+    [property: Key(3)] string? Instance = null,
+    [property: Key(4)] string? Setting = null,
+    [property: Key(5)] string? ControlConfig = null,
+    [property: Key(6)] int? Seed = null,
+    [property: Key(7)] string? Tag = null
 );
 
 [MessagePackObject]
@@ -77,6 +83,5 @@ public sealed record StartResponse(
     [property: Key(0)] ESimulationStartResult Result,
     [property: Key(1)] string? Error = null
 );
-
 
 #endregion
