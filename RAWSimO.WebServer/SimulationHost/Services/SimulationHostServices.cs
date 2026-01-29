@@ -43,6 +43,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     private Instance? _instance;
     private Exception? _lastError;
 
+    private StreamWriter? _runLogWriter;
+    private int _finalizeOnce;
+
     private sealed record CurrentRunInputs(
         string Instance,
         string Setting,
@@ -137,6 +140,22 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             _statisticsOutputDirName = null;
             _currentRunInputs = null;
 
+            if (_runLogWriter is not null)
+            {
+                try
+                {
+                    _runLogWriter.Dispose();
+                }
+                catch
+                {
+                    /* ignore */
+                }
+
+                _runLogWriter = null;
+            }
+
+            _finalizeOnce = 0;
+
             // Clean up previous run inputs if any (only used for inline-content mode).
             TryDeleteDirectory(_runInputDirectory);
             _runInputDirectory = null;
@@ -181,9 +200,16 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 _statisticsOutputDirName = statisticsDirName;
                 instance.SettingConfig.StatisticsDirectory = Path.Combine(StatisticsRootDirectory, statisticsDirName);
 
+                // Ensure statistics output directory exists and is ready.
+                instance.StatReset();
+
                 Directory.CreateDirectory(instance.SettingConfig.StatisticsDirectory);
                 var logPath = Path.Combine(instance.SettingConfig.StatisticsDirectory, IOConstants.LOG_FILE);
                 var logWriter = new StreamWriter(logPath, append: false) { AutoFlush = true };
+                _runLogWriter = logWriter;
+
+                instance.SettingConfig.StartTime = DateTime.UtcNow;
+                instance.SettingConfig.StopTime = default;
 
                 // Wrap LogAction to write to both console and log file
                 instance.SettingConfig.LogAction = msg =>
@@ -207,8 +233,6 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 var token = _cts.Token;
                 _runTask = Task.Run(() => RunLoop(instance, token), token);
-                _ = _runTask.ContinueWith(OnRunTaskCompleted, CancellationToken.None,
-                    TaskContinuationOptions.None, TaskScheduler.Default);
                 var successResp = new StartResponse(ESimulationStartResult.Success);
                 _ = SafeBroadcast(() => hub.Clients.All.StartSimulation(startNotification));
                 return UnaryResult.FromResult(successResp);
@@ -219,6 +243,22 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 _instance = null;
                 _statisticsOutputDirName = null;
                 _currentRunInputs = null;
+
+                if (_runLogWriter is not null)
+                {
+                    try
+                    {
+                        _runLogWriter.Dispose();
+                    }
+                    catch
+                    {
+                        /* ignore */
+                    }
+
+                    _runLogWriter = null;
+                }
+
+                _finalizeOnce = 0;
                 _cts?.Dispose();
                 _cts = null;
                 _runTask = null;
@@ -230,22 +270,45 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         }
     }
 
-    private void OnRunTaskCompleted(Task task)
+    private void FinalizeRun(Instance instance)
     {
-        // The simulation lifetime must not depend on any client connections.
-        // When the run loop ends (StopSimulation or crash), clear the in-memory instance and inputs.
-        lock (_gate)
+        // Idempotent: can be triggered by StopSimulation and/or normal completion.
+        if (Interlocked.CompareExchange(ref _finalizeOnce, 1, 0) != 0)
+            return;
+
+        try
         {
-            if (task.IsFaulted && task.Exception is not null)
-                _lastError ??= task.Exception.GetBaseException();
+            instance.SettingConfig.StopTime = DateTime.UtcNow;
+            instance.WriteStatistics();
+        }
+        catch (Exception ex)
+        {
+            lock (_gate)
+                _lastError ??= ex;
+        }
+        finally
+        {
+            try
+            {
+                _runLogWriter?.Dispose();
+            }
+            catch
+            {
+                /* ignore */
+            }
 
-            _isPaused = false;
-            _instance = null;
-            _currentRunInputs = null;
+            _runLogWriter = null;
 
-            _cts?.Dispose();
-            _cts = null;
-            _runTask = null;
+            lock (_gate)
+            {
+                _isPaused = false;
+                _instance = null;
+                _currentRunInputs = null;
+
+                _cts?.Dispose();
+                _cts = null;
+                _runTask = null;
+            }
         }
     }
 
@@ -257,6 +320,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         string? statisticsOutputDirName;
         double simTime;
         string? error;
+        Instance? instance;
 
         lock (_gate)
         {
@@ -265,6 +329,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             runTask = _runTask;
             runInputDirectory = _runInputDirectory;
             statisticsOutputDirName = _statisticsOutputDirName;
+
+            instance = _instance;
 
             simTime = _instance?.Controller?.CurrentTime ?? 0;
             error = _lastError?.ToString();
@@ -281,6 +347,21 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         catch
         {
             // ignore
+        }
+
+        // Wait a bit for the run loop to exit so we can finalize statistics deterministically.
+        try
+        {
+            runTask?.Wait(TimeSpan.FromSeconds(10));
+        }
+        catch
+        {
+            // ignore
+        }
+
+        if (instance is not null)
+        {
+            FinalizeRun(instance);
         }
 
         var endNotification = new EndSimulationNotification(simTime, error, DateTimeOffset.UtcNow);
@@ -593,8 +674,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             const double stepDt = 0.05;
             const int frameEverySteps = 1;
             var steps = 0;
+            var endTime = instance.SettingConfig.SimulationWarmupTime + instance.SettingConfig.SimulationDuration;
 
-            while (!ct.IsCancellationRequested)
+            while (!ct.IsCancellationRequested && instance.Controller.CurrentTime < endTime)
             {
                 if (_isPaused)
                 {
@@ -617,7 +699,11 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         catch (Exception ex)
         {
             lock (_gate)
-                _lastError = ex;
+                _lastError ??= ex;
+        }
+        finally
+        {
+            FinalizeRun(instance);
         }
     }
 
