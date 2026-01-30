@@ -3,51 +3,49 @@ using RAWSimO.Core.Configurations;
 using RAWSimO.MultiAgentPathFinding;
 using RAWSimO.MultiAgentPathFinding.Methods;
 
-namespace RAWSimO.Core.Control.Defaults.PathPlanning
+namespace RAWSimO.Core.Control.Defaults.PathPlanning;
+
+/// <summary>
+/// Controller of the bot.
+/// </summary>
+public class FARPathManager : PathManager
 {
 
     /// <summary>
-    /// Controller of the bot.
+    /// constructor
     /// </summary>
-    public class FARPathManager : PathManager
+    /// <param name="instance">instance</param>
+    public FARPathManager(Instance instance)
+        : base(instance)
     {
+        //Need a Request on Fail
+        BotNormal.RequestReoptimizationAfterFailingOfNextWaypointReservation = true;
 
-        /// <summary>
-        /// constructor
-        /// </summary>
-        /// <param name="instance">instance</param>
-        public FARPathManager(Instance instance)
-            : base(instance)
+        //translate to lightweight graph
+        var graph = GenerateGraph();
+        var config = instance.ControllerConfig.PathPlanningConfig as FARPathPlanningConfiguration;
+
+        PathFinder = new FARMethod(graph, instance.SettingConfig.Seed, config.evadingStrategy, new PathPlanningCommunicator(
+            instance.LogSevere,
+            instance.LogDefault,
+            instance.LogInfo,
+            instance.LogVerbose,
+            () => { instance.StatOverallPathPlanningTimeouts++; }));
+        var method = PathFinder as FARMethod;
+        method.LengthOfAWaitStep = config.LengthOfAWaitStep;
+        method.RuntimeLimitPerAgent = config.RuntimeLimitPerAgent;
+        method.RunTimeLimitOverall = config.RunTimeLimitOverall;
+        method.Es1MaximumNumberOfBreakingManeuverTries = config.MaximumNumberOfBreakingManeuverTries;
+        method.Es2BackEvadingAvoidance = config.NoBackEvading;
+        method.UseDeadlockHandler = config.UseDeadlockHandler;
+
+        if (config.AutoSetParameter)
         {
-            //Need a Request on Fail
-            BotNormal.RequestReoptimizationAfterFailingOfNextWaypointReservation = true;
-
-            //translate to lightweight graph
-            var graph = GenerateGraph();
-            var config = instance.ControllerConfig.PathPlanningConfig as FARPathPlanningConfiguration;
-
-            PathFinder = new FARMethod(graph, instance.SettingConfig.Seed, config.evadingStrategy, new PathPlanningCommunicator(
-                instance.LogSevere,
-                instance.LogDefault,
-                instance.LogInfo,
-                instance.LogVerbose,
-                () => { instance.StatOverallPathPlanningTimeouts++; }));
-            var method = PathFinder as FARMethod;
-            method.LengthOfAWaitStep = config.LengthOfAWaitStep;
-            method.RuntimeLimitPerAgent = config.RuntimeLimitPerAgent;
-            method.RunTimeLimitOverall = config.RunTimeLimitOverall;
-            method.Es1MaximumNumberOfBreakingManeuverTries = config.MaximumNumberOfBreakingManeuverTries;
-            method.Es2BackEvadingAvoidance = config.NoBackEvading;
-            method.UseDeadlockHandler = config.UseDeadlockHandler;
-
-            if (config.AutoSetParameter)
-            {
-                //best parameter determined my master thesis
-                method.Es1MaximumNumberOfBreakingManeuverTries = 2;
-                method.Es2BackEvadingAvoidance = true;
-                method.RuntimeLimitPerAgent = config.Clocking / instance.Bots.Count;
-                method.RunTimeLimitOverall = config.Clocking;
-            }
+            //best parameter determined my master thesis
+            method.Es1MaximumNumberOfBreakingManeuverTries = 2;
+            method.Es2BackEvadingAvoidance = true;
+            method.RuntimeLimitPerAgent = config.Clocking / instance.Bots.Count;
+            method.RunTimeLimitOverall = config.Clocking;
         }
     }
 }

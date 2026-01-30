@@ -1,8 +1,7 @@
-﻿namespace RAWSimO.Visualization.Rendering
+﻿namespace RAWSimO.Visualization.Rendering;
+
+public enum ViewMode
 {
-    public enum ViewMode
-    {
-        View2D,
-        View3D
-    }
+    View2D,
+    View3D
 }

@@ -2,49 +2,48 @@
 using RAWSimO.MultiAgentPathFinding;
 using RAWSimO.MultiAgentPathFinding.Methods;
 
-namespace RAWSimO.Core.Control.Defaults.PathPlanning
+namespace RAWSimO.Core.Control.Defaults.PathPlanning;
+
+/// <summary>
+/// ODIDPathManager
+/// </summary>
+internal class ODIDPathManager : PathManager
 {
+
     /// <summary>
-    /// ODIDPathManager
+    /// constructor
     /// </summary>
-    class ODIDPathManager : PathManager
+    /// <param name="instance">instance</param>
+    public ODIDPathManager(Instance instance)
+        : base(instance)
     {
 
-        /// <summary>
-        /// constructor
-        /// </summary>
-        /// <param name="instance">instance</param>
-        public ODIDPathManager(Instance instance)
-            : base(instance)
+        //translate to lightweight graph
+        var graph = GenerateGraph();
+        var config = instance.ControllerConfig.PathPlanningConfig as ODIDPathPlanningConfiguration;
+
+        PathFinder = new ODIDMethod(graph, instance.SettingConfig.Seed, new PathPlanningCommunicator(
+            instance.LogSevere,
+            instance.LogDefault,
+            instance.LogInfo,
+            instance.LogVerbose,
+            () => { instance.StatOverallPathPlanningTimeouts++; }));
+        var method = PathFinder as ODIDMethod;
+        method.LengthOfAWaitStep = config.LengthOfAWaitStep;
+        method.RuntimeLimitPerAgent = config.RuntimeLimitPerAgent;
+        method.RunTimeLimitOverall = config.RunTimeLimitOverall;
+        method.LengthOfAWindow = config.LengthOfAWindow;
+        method.MaxNodeCountPerAgent = config.MaxNodeCountPerAgent;
+        method.UseFinalReservations = config.UseFinalReservations;
+
+        if (config.AutoSetParameter)
         {
-
-            //translate to lightweight graph
-            var graph = GenerateGraph();
-            var config = instance.ControllerConfig.PathPlanningConfig as ODIDPathPlanningConfiguration;
-
-            PathFinder = new ODIDMethod(graph, instance.SettingConfig.Seed, new PathPlanningCommunicator(
-                instance.LogSevere,
-                instance.LogDefault,
-                instance.LogInfo,
-                instance.LogVerbose,
-                () => { instance.StatOverallPathPlanningTimeouts++; }));
-            var method = PathFinder as ODIDMethod;
-            method.LengthOfAWaitStep = config.LengthOfAWaitStep;
-            method.RuntimeLimitPerAgent = config.RuntimeLimitPerAgent;
-            method.RunTimeLimitOverall = config.RunTimeLimitOverall;
-            method.LengthOfAWindow = config.LengthOfAWindow;
-            method.MaxNodeCountPerAgent = config.MaxNodeCountPerAgent;
-            method.UseFinalReservations = config.UseFinalReservations;
-
-            if (config.AutoSetParameter)
-            {
-                //best parameter determined my master thesis
-                method.UseFinalReservations = false;
-                method.RuntimeLimitPerAgent = config.Clocking / instance.Bots.Count;
-                method.RunTimeLimitOverall = config.Clocking;
-                method.MaxNodeCountPerAgent = 100;
-                method.LengthOfAWindow = 15;
-            }
+            //best parameter determined my master thesis
+            method.UseFinalReservations = false;
+            method.RuntimeLimitPerAgent = config.Clocking / instance.Bots.Count;
+            method.RunTimeLimitOverall = config.Clocking;
+            method.MaxNodeCountPerAgent = 100;
+            method.LengthOfAWindow = 15;
         }
     }
 }

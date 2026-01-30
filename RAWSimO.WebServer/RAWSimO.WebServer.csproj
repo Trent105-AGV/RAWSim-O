@@ -7,11 +7,23 @@
     <LangVersion>default</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RAWSimO.WebServer</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\RAWSimO.Core\RAWSimO.Core.csproj" />
     <ProjectReference Include="..\RAWSimO.Rendering2D\RAWSimO.Rendering2D.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MagicOnion" Version="7.0.7" />
+    <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RAWSimO.WebServer.Shared\RAWSimO.WebServer.Shared.csproj" />
   </ItemGroup>
 
 </Project>

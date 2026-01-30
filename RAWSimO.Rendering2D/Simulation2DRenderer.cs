@@ -13,7 +13,7 @@ public sealed class Simulation2DCommandBuilder
 
         var tiers = instance.GetInfoTiers().ToList();
         if (tiers.Count == 0)
-            return new RenderFrame(Array.Empty<RenderCommand>());
+            return new RenderFrame([]);
 
         if (tierIndex < 0) tierIndex = 0;
         if (tierIndex >= tiers.Count) tierIndex = tiers.Count - 1;
@@ -23,14 +23,14 @@ public sealed class Simulation2DCommandBuilder
         var worldH = tier.GetInfoWidth();
         var transform = new ViewportTransform(worldW, worldH, viewport, options.PaddingPx);
 
-        var commands = new List<RenderCommand>(capacity: 256);
-
-        // Background
-        commands.Add(new FillRect(viewport, RenderColor.White));
-
-        // Border
-        commands.Add(new StrokeRect(transform.WorldToScreenRect(0, 0, worldW, worldH), RenderColor.DarkGray,
-            Thickness: 1));
+        var commands = new List<RenderCommand>(capacity: 256)
+        {
+            // Background
+            new FillRect(viewport, RenderColor.White),
+            // Border
+            new StrokeRect(transform.WorldToScreenRect(0, 0, worldW, worldH), RenderColor.DarkGray,
+                Thickness: 1)
+        };
 
         if (options.DrawStations)
             AddStations(commands, tier, transform);

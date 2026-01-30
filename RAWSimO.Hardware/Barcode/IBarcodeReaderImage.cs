@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-namespace RAWSimO.Hardware.Barcode
+namespace RAWSimO.Hardware.Barcode;
+
+/// <summary>
+/// The interface for a barcode reader which accepts an Image instance from EmguCV
+/// </summary>
+public interface IBarcodeReaderImage : IBarcodeReaderGeneric<Image<Emgu.CV.Structure.Bgr, byte>>
 {
-    /// <summary>
-    /// The interface for a barcode reader which accepts an Image instance from EmguCV
-    /// </summary>
-    public interface IBarcodeReaderImage : IBarcodeReaderGeneric<Image<Emgu.CV.Structure.Bgr, byte>>
-    {
-    }
 }

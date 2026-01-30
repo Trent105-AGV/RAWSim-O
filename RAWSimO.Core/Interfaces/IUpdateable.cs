@@ -1,21 +1,20 @@
-﻿namespace RAWSimO.Core.Interfaces
+﻿namespace RAWSimO.Core.Interfaces;
+
+/// <summary>
+/// Defines the functionality of an updateable object used by the agent based simulation.
+/// </summary>
+public interface IUpdateable
 {
     /// <summary>
-    /// Defines the functionality of an updateable object used by the agent based simulation.
+    /// The next event when this element has to be updated.
     /// </summary>
-    public interface IUpdateable
-    {
-        /// <summary>
-        /// The next event when this element has to be updated.
-        /// </summary>
-        /// <param name="currentTime">The current time of the simulation.</param>
-        /// <returns>The next time this element has to be updated.</returns>
-        double GetNextEventTime(double currentTime);
-        /// <summary>
-        /// Updates the element to the specified time.
-        /// </summary>
-        /// <param name="lastTime">The time before the update.</param>
-        /// <param name="currentTime">The time to update to.</param>
-        void Update(double lastTime, double currentTime);
-    }
+    /// <param name="currentTime">The current time of the simulation.</param>
+    /// <returns>The next time this element has to be updated.</returns>
+    double GetNextEventTime(double currentTime);
+    /// <summary>
+    /// Updates the element to the specified time.
+    /// </summary>
+    /// <param name="lastTime">The time before the update.</param>
+    /// <param name="currentTime">The time to update to.</param>
+    void Update(double lastTime, double currentTime);
 }

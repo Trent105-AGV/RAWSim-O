@@ -1,0 +1,58 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <BuildType Name="XPlat" />
+    <BuildType Name="XPlatRelease" />
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/RAWSimO.Core.Tests/RAWSimO.Core.Tests.csproj" />
+  </Folder>
+  <Project Path="RAWSimO.AppInputStation/RAWSimO.AppInputStation.csproj">
+    <Build Solution="XPlatRelease|Any CPU" Project="false" />
+    <Build Solution="XPlat|Any CPU" Project="false" />
+  </Project>
+  <Project Path="RAWSimO.AppOutputStation/RAWSimO.AppOutputStation.csproj">
+    <Build Solution="XPlatRelease|Any CPU" Project="false" />
+    <Build Solution="XPlat|Any CPU" Project="false" />
+  </Project>
+  <Project Path="RAWSimO.AppRobot/RAWSimO.AppRobot.csproj">
+    <Build Solution="XPlatRelease|Any CPU" Project="false" />
+    <Build Solution="XPlat|Any CPU" Project="false" />
+  </Project>
+  <Project Path="RAWSimO.AppServer/RAWSimO.AppServer.csproj">
+    <Build Solution="XPlatRelease|Any CPU" Project="false" />
+    <Build Solution="XPlat|Any CPU" Project="false" />
+  </Project>
+  <Project Path="RAWSimO.AvaloniaClient\RAWSimO.AvaloniaClient.csproj" />
+  <Project Path="RAWSimO.CLI/RAWSimO.CLI.csproj" />
+  <Project Path="RAWSimO.CommFramework/RAWSimO.CommFramework.csproj" />
+  <Project Path="RAWSimO.Core/RAWSimO.Core.csproj" />
+  <Project Path="RAWSimO.DataPreparation/RAWSimO.DataPreparation.csproj" />
+  <Project Path="RAWSimO.DEA/RAWSimO.DEA.csproj" />
+  <Project Path="RAWSimO.Hardware/RAWSimO.Hardware.csproj">
+    <Build Solution="XPlatRelease|Any CPU" Project="false" />
+    <Build Solution="XPlat|Any CPU" Project="false" />
+  </Project>
+  <Project Path="RAWSimO.MDPSolve/RAWSimO.MDPSolve.csproj" />
+  <Project Path="RAWSimO.MultiAgentPathFinding/RAWSimO.MultiAgentPathFinding.csproj" />
+  <Project Path="RAWSimO.Playground/RAWSimO.Playground.csproj" />
+  <Project Path="RAWSimO.Rendering2D/RAWSimO.Rendering2D.csproj" />
+  <Project Path="RAWSimO.Toolbox/RAWSimO.Toolbox.csproj" />
+  <Project Path="RAWSimO.Visualization/RAWSimO.Visualization.csproj">
+    <Build Solution="XPlatRelease|Any CPU" Project="false" />
+    <Build Solution="XPlat|Any CPU" Project="false" />
+  </Project>
+  <Project Path="RAWSimO.VisualToolbox/RAWSimO.VisualToolbox.csproj">
+    <Build Solution="XPlatRelease|Any CPU" Project="false" />
+    <Build Solution="XPlat|Any CPU" Project="false" />
+  </Project>
+  <Project Path="RAWSimO.WebServer.Shared/RAWSimO.WebServer.Shared.csproj">
+    <BuildType Solution="XPlatRelease|*" Project="Debug" />
+    <BuildType Solution="XPlat|*" Project="Debug" />
+  </Project>
+  <Project Path="RAWSimO.WebServer/RAWSimO.WebServer.csproj" />
+</Solution>
