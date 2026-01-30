@@ -12,8 +12,6 @@ namespace RAWSimO.WebServer.SimulationHost.Controllers;
 public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService)
 	: ControllerBase
 {
-	
-
 	[HttpGet]
 	[AllowAnonymous]
 	public async Task<IActionResult> Health()
@@ -46,7 +44,8 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 	[AllowAnonymous]
 	public async Task<IActionResult> DownloadStatistics([FromQuery(Name = "output_dir_name")] string outputDirName)
 	{
-		return Ok(await hostService.DownloadStatistics(new DownloadStatisticsRequest(outputDirName)));
+		var response = await hostService.DownloadStatistics(new DownloadStatisticsRequest(outputDirName));
+		return File(response.ZipBytes, "application/zip", response.FileName);
 	}
 
 	[HttpPost]
