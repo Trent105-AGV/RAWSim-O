@@ -69,6 +69,13 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 		return Ok(await hostService.GetLatestFrame(request));
 	}
 
+	[HttpPost]
+	[AllowAnonymous]
+	public async Task<IActionResult> AppendTasks([FromBody] AppendTasksRequest request)
+	{
+		return Ok(await hostService.AppendTasks(request));
+	}
+
 	[HttpGet]
 	[AllowAnonymous]
 	public async Task StreamFrames(

@@ -23,7 +23,33 @@ public sealed record StartRequest(
     [property: Key(2)] string ControlConfig,
     [property: Key(3)] int? Seed,
     [property: Key(4)] string? Tag,
-    [property: Key(5)] byte[]? ResourceZip
+    [property: Key(5)] byte[]? ResourceZip,
+    [property: Key(6)] int WidthPx = 800,
+    [property: Key(7)] int HeightPx = 600
+);
+
+[MessagePackObject]
+public sealed record AppendTaskPositionRequest(
+    [property: Key(0)] int ItemDescriptionId,
+    [property: Key(1)] int Count
+);
+
+[MessagePackObject]
+public sealed record AppendTaskRequest(
+    [property: Key(0)] double? TimeStamp,
+    [property: Key(1)] IReadOnlyList<AppendTaskPositionRequest> Positions
+);
+
+[MessagePackObject]
+public sealed record AppendTasksRequest(
+    [property: Key(0)] IReadOnlyList<AppendTaskRequest> Tasks
+);
+
+[MessagePackObject]
+public sealed record AppendTasksResponse(
+    [property: Key(0)] bool Accepted,
+    [property: Key(1)] int AppendedCount,
+    [property: Key(2)] string? Error = null
 );
 
 [MessagePackObject]

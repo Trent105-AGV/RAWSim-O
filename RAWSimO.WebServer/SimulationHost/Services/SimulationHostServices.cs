@@ -59,6 +59,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     private volatile RenderFrameDto? _latestFrame;
 
+    private int _preferredViewportWidthPx = 800;
+    private int _preferredViewportHeightPx = 600;
+
     public bool IsRunning
     {
         get
@@ -137,6 +140,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             _lastError = null;
             _latestFrame = null;
             _isPaused = false;
+            _preferredViewportWidthPx = SanitizeViewportDimension(request.WidthPx, 800);
+            _preferredViewportHeightPx = SanitizeViewportDimension(request.HeightPx, 600);
             _statisticsOutputDirName = null;
             _currentRunInputs = null;
 
@@ -612,6 +617,67 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         return UnaryResult.FromResult(true);
     }
 
+    public UnaryResult<AppendTasksResponse> AppendTasks(AppendTasksRequest request)
+    {
+        if (request.Tasks.Count == 0)
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, "Tasks are required"));
+
+        Instance? instance;
+        lock (_gate)
+        {
+            if (_runTask is not { IsCompleted: false } || _instance is null)
+                return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
+                    "Simulation must be running before appending tasks"));
+
+            instance = _instance;
+        }
+
+        try
+        {
+            var now = instance.Controller.CurrentTime;
+            var dtoOrders = new List<DTOOrder>(request.Tasks.Count);
+
+            foreach (var task in request.Tasks)
+            {
+                if (task.Positions.Count == 0)
+                    continue;
+
+                var dtoOrder = new DTOOrder
+                {
+                    TimeStamp = task.TimeStamp.HasValue ? Math.Max(task.TimeStamp.Value, now) : now,
+                    Positions = []
+                };
+
+                foreach (var position in task.Positions)
+                {
+                    if (position.Count <= 0)
+                        continue;
+
+                    dtoOrder.Positions.Add(new DTOOrderPosition
+                    {
+                        ItemDescriptionID = position.ItemDescriptionId,
+                        Count = position.Count
+                    });
+                }
+
+                if (dtoOrder.Positions.Count > 0)
+                    dtoOrders.Add(dtoOrder);
+            }
+
+            if (dtoOrders.Count == 0)
+                return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
+                    "No valid task positions provided"));
+
+            var appended = instance.ItemManager?.AppendDtoOrders(dtoOrders, now) ?? 0;
+            return UnaryResult.FromResult(new AppendTasksResponse(appended > 0, appended,
+                appended > 0 ? null : "Failed to append tasks"));
+        }
+        catch (Exception ex)
+        {
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, ex.ToString()));
+        }
+    }
+
     public UnaryResult<RenderFrameResponse> GetLatestFrame(RenderFrameRequest request)
     {
         var frameDto = GetLatestFrameDto(request.WidthPx, request.HeightPx, request.TierIndex,
@@ -635,8 +701,11 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     private RenderFrameDto GetLatestFrameDto(int widthPx, int heightPx, int tierIndex, RenderOptions? options)
     {
+        var requestedWidth = SanitizeViewportDimension(widthPx, _preferredViewportWidthPx);
+        var requestedHeight = SanitizeViewportDimension(heightPx, _preferredViewportHeightPx);
         var cached = _latestFrame;
-        if (cached is not null && cached.ViewportWidthPx == widthPx && cached.ViewportHeightPx == heightPx &&
+        if (cached is not null && cached.ViewportWidthPx == requestedWidth &&
+            cached.ViewportHeightPx == requestedHeight &&
             cached.TierIndex == tierIndex)
             return cached;
 
@@ -645,9 +714,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             instance = _instance;
 
         if (instance is null)
-            return RenderFrameDto.Empty(widthPx, heightPx, tierIndex);
+            return RenderFrameDto.Empty(requestedWidth, requestedHeight, tierIndex);
 
-        return BuildFrame(instance, widthPx, heightPx, tierIndex, options);
+        return BuildFrame(instance, requestedWidth, requestedHeight, tierIndex, options);
     }
 
     private static byte[]? SerializeFrameData(RenderFrameDto frameDto)
@@ -689,7 +758,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 if (steps % frameEverySteps == 0)
                 {
-                    var frame = BuildFrame(instance, 800, 600, tierIndex: 0, options: null);
+                    var frame = BuildFrame(instance, _preferredViewportWidthPx, _preferredViewportHeightPx,
+                        tierIndex: 0, options: null);
                     _latestFrame = frame;
                 }
 
@@ -724,14 +794,21 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     private RenderFrameDto BuildFrame(Instance instance, int widthPx, int heightPx, int tierIndex,
         RenderOptions? options)
     {
-        var viewport = new RectF(0, 0, widthPx, heightPx);
+        var requestedWidth = SanitizeViewportDimension(widthPx, _preferredViewportWidthPx);
+        var requestedHeight = SanitizeViewportDimension(heightPx, _preferredViewportHeightPx);
+        var (actualWidth, actualHeight) = ResolveViewportSize(instance, tierIndex, requestedWidth, requestedHeight);
+
+        var viewport = new RectF(0, 0, actualWidth, actualHeight);
         var frame = _renderer.Build(instance, tierIndex, viewport, options);
-        return RenderFrameDto.From(frame, widthPx, heightPx, tierIndex, instance.Controller.CurrentTime);
+        return RenderFrameDto.From(frame, actualWidth, actualHeight, tierIndex, instance.Controller.CurrentTime);
     }
 
     public async Task StreamFramesSse(HttpResponse response, int widthPx, int heightPx, int tierIndex,
         RenderOptions? options, CancellationToken ct)
     {
+        var requestedWidth = SanitizeViewportDimension(widthPx, _preferredViewportWidthPx);
+        var requestedHeight = SanitizeViewportDimension(heightPx, _preferredViewportHeightPx);
+
         response.Headers.CacheControl = "no-cache";
         response.Headers.Connection = "keep-alive";
         response.ContentType = "text/event-stream";
@@ -745,8 +822,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 instance = _instance;
 
             var payload = instance is null
-                ? RenderFrameDto.Empty(widthPx, heightPx, tierIndex)
-                : BuildFrame(instance, widthPx, heightPx, tierIndex, options);
+                ? RenderFrameDto.Empty(requestedWidth, requestedHeight, tierIndex)
+                : BuildFrame(instance, requestedWidth, requestedHeight, tierIndex, options);
 
             var json = JsonSerializer.Serialize(payload, jsonOptions);
             var bytes = Encoding.UTF8.GetBytes($"data: {json}\n\n");
@@ -755,5 +832,37 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
             await Task.Delay(100, ct);
         }
+    }
+
+    private static int SanitizeViewportDimension(int value, int fallback)
+    {
+        if (value <= 0)
+            return Math.Max(1, fallback);
+
+        return value;
+    }
+
+    private static (int Width, int Height) ResolveViewportSize(Instance instance, int tierIndex, int requestedWidth,
+        int requestedHeight)
+    {
+        if (instance.Compound?.Tiers == null || instance.Compound.Tiers.Count == 0)
+            return (requestedWidth, requestedHeight);
+
+        var validTierIndex = Math.Clamp(tierIndex, 0, instance.Compound.Tiers.Count - 1);
+        var tier = instance.Compound.Tiers[validTierIndex];
+        if (tier == null || tier.Width <= 0 || tier.Length <= 0)
+            return (requestedWidth, requestedHeight);
+
+        var aspect = tier.Length / tier.Width;
+        if (aspect <= 0 || double.IsNaN(aspect) || double.IsInfinity(aspect))
+            return (requestedWidth, requestedHeight);
+
+        var widthByHeight = (int)Math.Round(requestedHeight * aspect);
+        var heightByWidth = (int)Math.Round(requestedWidth / aspect);
+
+        if (widthByHeight <= requestedWidth)
+            return (Math.Max(1, widthByHeight), requestedHeight);
+
+        return (requestedWidth, Math.Max(1, heightByWidth));
     }
 }
