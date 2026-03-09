@@ -650,7 +650,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 foreach (var position in task.Positions)
                 {
-                    if (position.Count <= 0)
+                    if (position is not { Count: > 0 })
                         continue;
 
                     dtoOrder.Positions.Add(new DTOOrderPosition

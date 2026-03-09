@@ -1594,11 +1594,23 @@ public class ItemManager : IItemManagerInfo
             if (dtoOrder?.Positions == null || dtoOrder.Positions.Count == 0)
                 continue;
 
-            var order = dtoOrder.Submit(Instance);
-            if (order == null)
+            var order = new Order
+            {
+                TimeStamp = Math.Max(dtoOrder.TimeStamp, minTimestamp)
+            };
+
+            foreach (var position in dtoOrder.Positions)
+            {
+                if (position == null || position.Count <= 0)
+                    continue;
+
+                var itemDescription = Instance.GetItemDescriptionByID(position.ItemDescriptionID);
+                order.AddPosition(itemDescription, position.Count);
+            }
+
+            if (!order.Positions.Any())
                 continue;
 
-            order.TimeStamp = Math.Max(order.TimeStamp, minTimestamp);
             preparedOrders.Add(order);
         }
 
