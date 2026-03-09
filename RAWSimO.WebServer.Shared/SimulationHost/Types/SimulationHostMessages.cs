@@ -49,7 +49,10 @@ public sealed record AppendTasksRequest(
 public sealed record AppendTasksResponse(
     [property: Key(0)] bool Accepted,
     [property: Key(1)] int AppendedCount,
-    [property: Key(2)] string? Error = null
+    [property: Key(2)] int PendingOrderCount = 0,
+    [property: Key(3)] int OpenOrderCount = 0,
+    [property: Key(4)] int CompletedOrderCount = 0,
+    [property: Key(5)] string? Error = null
 );
 
 [MessagePackObject]

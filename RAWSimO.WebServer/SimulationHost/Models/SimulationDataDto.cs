@@ -4,7 +4,8 @@ public sealed record SimulationCircleDto(
     int Id,
     double X,
     double Y,
-    double Radius
+    double Radius,
+    double Orientation = 0
 );
 
 public sealed record SimulationPointDto(
@@ -18,6 +19,9 @@ public sealed record SimulationDataDto(
     double SimTime,
     double WorldWidth,
     double WorldHeight,
+    int PendingOrderCount,
+    int OpenOrderCount,
+    int CompletedOrderCount,
     IReadOnlyList<SimulationCircleDto> Bots,
     IReadOnlyList<SimulationCircleDto> Pods,
     IReadOnlyList<SimulationCircleDto> InputStations,
@@ -32,6 +36,9 @@ public sealed record SimulationDataDto(
             SimTime: 0,
             WorldWidth: worldWidth,
             WorldHeight: worldHeight,
+            PendingOrderCount: 0,
+            OpenOrderCount: 0,
+            CompletedOrderCount: 0,
             Bots: [],
             Pods: [],
             InputStations: [],

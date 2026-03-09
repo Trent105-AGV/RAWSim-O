@@ -102,9 +102,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     {
         lock (_gate)
         {
-            var running = _runTask is { IsCompleted: false };
-            var simTime = _instance?.Controller?.CurrentTime ?? 0;
-            var error = _lastError?.ToString();
+            var running = IsRunning;
+            var simTime = Math.Round(SimTime, 2);
+            var error = LastError;
 
             var inputs = running ? _currentRunInputs : null;
             var resp = new StatusResponse(
@@ -632,14 +632,14 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     public UnaryResult<AppendTasksResponse> AppendTasks(AppendTasksRequest request)
     {
         if (request.Tasks.Count == 0)
-            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, "Tasks are required"));
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, Error: "Tasks are required"));
 
         Instance? instance;
         lock (_gate)
         {
             if (_runTask is not { IsCompleted: false } || _instance is null)
                 return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
-                    "Simulation must be running before appending tasks"));
+                    Error: "Simulation must be running before appending tasks"));
 
             instance = _instance;
         }
@@ -678,15 +678,25 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
             if (dtoOrders.Count == 0)
                 return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
-                    "No valid task positions provided"));
+                    Error: "No valid task positions provided"));
 
-            var appended = instance.ItemManager?.AppendDtoOrders(dtoOrders, now) ?? 0;
-            return UnaryResult.FromResult(new AppendTasksResponse(appended > 0, appended,
+            var itemManager = instance.ItemManager;
+            var appended = itemManager?.AppendDtoOrders(dtoOrders, now) ?? 0;
+            var pendingCount = itemManager?.GetInfoPendingOrderCount() ?? 0;
+            var openCount = itemManager?.GetInfoOpenOrders()?.Count() ?? 0;
+            var completedCount = itemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
+
+            return UnaryResult.FromResult(new AppendTasksResponse(
+                appended > 0,
+                appended,
+                pendingCount,
+                openCount,
+                completedCount,
                 appended > 0 ? null : "Failed to append tasks"));
         }
         catch (Exception ex)
         {
-            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, ex.ToString()));
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, Error: ex.ToString()));
         }
     }
 
@@ -960,7 +970,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         var tier = instance.Compound.Tiers[validTierIndex];
 
         var bots = options.DrawBots
-            ? tier.CurrentBots.Select(b => new SimulationCircleDto(b.ID, b.X, b.Y, b.Radius)).ToArray()
+            ? tier.CurrentBots.Select(b => new SimulationCircleDto(b.ID, b.X, b.Y, b.Radius, b.Orientation)).ToArray()
             : [];
 
         var pods = options.DrawPods
@@ -982,11 +992,18 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 .Select(w => new SimulationPointDto(w.ID, w.X, w.Y)).ToArray()
             : [];
 
+        var pendingCount = instance.ItemManager?.GetInfoPendingOrderCount() ?? 0;
+        var openCount = instance.ItemManager?.GetInfoOpenOrders()?.Count() ?? 0;
+        var completedCount = instance.ItemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
+
         return new SimulationDataDto(
             TierIndex: validTierIndex,
             SimTime: instance.Controller?.CurrentTime ?? 0,
             WorldWidth: tier.Length,
             WorldHeight: tier.Width,
+            PendingOrderCount: pendingCount,
+            OpenOrderCount: openCount,
+            CompletedOrderCount: completedCount,
             Bots: bots,
             Pods: pods,
             InputStations: inputStations,
