@@ -108,4 +108,11 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 			},
 			HttpContext.RequestAborted);
 	}
+
+	[HttpGet]
+	[AllowAnonymous]
+	public async Task StreamSimulationData()
+	{
+		await streamService.StreamSimulationDataSse(Response, HttpContext.RequestAborted);
+	}
 }

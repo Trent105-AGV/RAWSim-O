@@ -21,6 +21,8 @@ public interface ISimulationStreamService
 {
     Task StreamFramesSse(HttpResponse response, int widthPx, int heightPx, int tierIndex,
         RenderOptions? options, CancellationToken ct);
+
+    Task StreamSimulationDataSse(HttpResponse response, CancellationToken ct);
 }
 
 public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClient> hub)
@@ -899,6 +901,36 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         }
     }
 
+    public async Task StreamSimulationDataSse(HttpResponse response, CancellationToken ct)
+    {
+        response.Headers.CacheControl = "no-cache";
+        response.Headers.Connection = "keep-alive";
+        response.ContentType = "text/event-stream";
+
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        while (!ct.IsCancellationRequested)
+        {
+            Instance? instance;
+            RenderOptions dataOptions;
+            int dataTierIndex;
+            lock (_gate)
+            {
+                instance = _instance;
+                dataOptions = CloneRenderOptions(_currentRenderOptions);
+                dataTierIndex = _currentRenderTierIndex;
+            }
+
+            var payload = BuildSimulationData(instance, dataTierIndex, dataOptions);
+            var json = JsonSerializer.Serialize(payload, jsonOptions);
+            var bytes = Encoding.UTF8.GetBytes($"data: {json}\n\n");
+            await response.Body.WriteAsync(bytes, ct);
+            await response.Body.FlushAsync(ct);
+
+            await Task.Delay(100, ct);
+        }
+    }
+
     private static int SanitizeViewportDimension(int value, int fallback)
     {
         if (value <= 0)
@@ -917,6 +949,49 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             DrawWaypoints = options.DrawWaypoints,
             PaddingPx = options.PaddingPx
         };
+    }
+
+    private static SimulationDataDto BuildSimulationData(Instance? instance, int tierIndex, RenderOptions options)
+    {
+        if (instance?.Compound?.Tiers == null || instance.Compound.Tiers.Count == 0)
+            return SimulationDataDto.Empty(tierIndex, 1, 1);
+
+        var validTierIndex = Math.Clamp(tierIndex, 0, instance.Compound.Tiers.Count - 1);
+        var tier = instance.Compound.Tiers[validTierIndex];
+
+        var bots = options.DrawBots
+            ? tier.CurrentBots.Select(b => new SimulationCircleDto(b.ID, b.X, b.Y, b.Radius)).ToArray()
+            : [];
+
+        var pods = options.DrawPods
+            ? tier.CurrentPods.Select(p => new SimulationCircleDto(p.ID, p.X, p.Y, p.Radius)).ToArray()
+            : [];
+
+        var inputStations = options.DrawStations
+            ? instance.InputStations.Where(s => ReferenceEquals(s.Tier, tier))
+                .Select(s => new SimulationCircleDto(s.ID, s.X, s.Y, s.Radius)).ToArray()
+            : [];
+
+        var outputStations = options.DrawStations
+            ? instance.OutputStations.Where(s => ReferenceEquals(s.Tier, tier))
+                .Select(s => new SimulationCircleDto(s.ID, s.X, s.Y, s.Radius)).ToArray()
+            : [];
+
+        var waypoints = options.DrawWaypoints
+            ? instance.Waypoints.Where(w => ReferenceEquals(w.Tier, tier))
+                .Select(w => new SimulationPointDto(w.ID, w.X, w.Y)).ToArray()
+            : [];
+
+        return new SimulationDataDto(
+            TierIndex: validTierIndex,
+            SimTime: instance.Controller?.CurrentTime ?? 0,
+            WorldWidth: tier.Length,
+            WorldHeight: tier.Width,
+            Bots: bots,
+            Pods: pods,
+            InputStations: inputStations,
+            OutputStations: outputStations,
+            Waypoints: waypoints);
     }
 
     private static (int Width, int Height) ResolveViewportSize(Instance instance, int tierIndex, int requestedWidth,
