@@ -61,6 +61,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     private int _preferredViewportWidthPx = 800;
     private int _preferredViewportHeightPx = 600;
+    private RenderOptions _currentRenderOptions = new();
+    private int _currentRenderTierIndex;
 
     public bool IsRunning
     {
@@ -142,6 +144,14 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             _isPaused = false;
             _preferredViewportWidthPx = SanitizeViewportDimension(request.WidthPx, 800);
             _preferredViewportHeightPx = SanitizeViewportDimension(request.HeightPx, 600);
+            _currentRenderOptions = new RenderOptions
+            {
+                DrawBots = true,
+                DrawPods = true,
+                DrawStations = true,
+                DrawWaypoints = false
+            };
+            _currentRenderTierIndex = 0;
             _statisticsOutputDirName = null;
             _currentRunInputs = null;
 
@@ -678,16 +688,57 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         }
     }
 
-    public UnaryResult<RenderFrameResponse> GetLatestFrame(RenderFrameRequest request)
+    public UnaryResult<UpdateRenderOptionsResponse> UpdateRenderOptions(UpdateRenderOptionsRequest request)
     {
-        var frameDto = GetLatestFrameDto(request.WidthPx, request.HeightPx, request.TierIndex,
-            new RenderOptions
+        lock (_gate)
+        {
+            if (_runTask is not { IsCompleted: false } || _instance is null)
+                return UnaryResult.FromResult(new UpdateRenderOptionsResponse(
+                    false,
+                    _currentRenderOptions.DrawBots,
+                    _currentRenderOptions.DrawPods,
+                    _currentRenderOptions.DrawStations,
+                    _currentRenderOptions.DrawWaypoints,
+                    _currentRenderTierIndex,
+                    "Simulation must be running before updating render options"));
+
+            _currentRenderOptions = new RenderOptions
             {
                 DrawBots = request.DrawBots,
                 DrawPods = request.DrawPods,
                 DrawStations = request.DrawStations,
-                DrawWaypoints = request.DrawWaypoints
-            });
+                DrawWaypoints = request.DrawWaypoints,
+                PaddingPx = _currentRenderOptions.PaddingPx
+            };
+
+            var tierCount = _instance.Compound?.Tiers?.Count ?? 0;
+            if (request.TierIndex.HasValue)
+            {
+                _currentRenderTierIndex = tierCount > 0
+                    ? Math.Clamp(request.TierIndex.Value, 0, tierCount - 1)
+                    : 0;
+            }
+
+            // Invalidate cached frame to apply updated render style immediately.
+            _latestFrame = null;
+
+            return UnaryResult.FromResult(new UpdateRenderOptionsResponse(
+                true,
+                _currentRenderOptions.DrawBots,
+                _currentRenderOptions.DrawPods,
+                _currentRenderOptions.DrawStations,
+                _currentRenderOptions.DrawWaypoints,
+                _currentRenderTierIndex));
+        }
+    }
+
+    public UnaryResult<RenderFrameResponse> GetLatestFrame(RenderFrameRequest request)
+    {
+        int tierIndex;
+        lock (_gate)
+            tierIndex = _currentRenderTierIndex;
+
+        var frameDto = GetLatestFrameDto(request.WidthPx, request.HeightPx, tierIndex, null);
 
         var resp = new RenderFrameResponse(
             frameDto.ViewportWidthPx,
@@ -758,8 +809,16 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 if (steps % frameEverySteps == 0)
                 {
+                    RenderOptions runOptions;
+                    int runTierIndex;
+                    lock (_gate)
+                    {
+                        runOptions = CloneRenderOptions(_currentRenderOptions);
+                        runTierIndex = _currentRenderTierIndex;
+                    }
+
                     var frame = BuildFrame(instance, _preferredViewportWidthPx, _preferredViewportHeightPx,
-                        tierIndex: 0, options: null);
+                        tierIndex: runTierIndex, options: runOptions);
                     _latestFrame = frame;
                 }
 
@@ -818,12 +877,18 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         while (!ct.IsCancellationRequested)
         {
             Instance? instance;
+            RenderOptions streamOptions;
+            int streamTierIndex;
             lock (_gate)
+            {
                 instance = _instance;
+                streamOptions = CloneRenderOptions(_currentRenderOptions);
+                streamTierIndex = _currentRenderTierIndex;
+            }
 
             var payload = instance is null
-                ? RenderFrameDto.Empty(requestedWidth, requestedHeight, tierIndex)
-                : BuildFrame(instance, requestedWidth, requestedHeight, tierIndex, options);
+                ? RenderFrameDto.Empty(requestedWidth, requestedHeight, streamTierIndex)
+                : BuildFrame(instance, requestedWidth, requestedHeight, streamTierIndex, streamOptions);
 
             var json = JsonSerializer.Serialize(payload, jsonOptions);
             var bytes = Encoding.UTF8.GetBytes($"data: {json}\n\n");
@@ -840,6 +905,18 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             return Math.Max(1, fallback);
 
         return value;
+    }
+
+    private static RenderOptions CloneRenderOptions(RenderOptions options)
+    {
+        return new RenderOptions
+        {
+            DrawBots = options.DrawBots,
+            DrawPods = options.DrawPods,
+            DrawStations = options.DrawStations,
+            DrawWaypoints = options.DrawWaypoints,
+            PaddingPx = options.PaddingPx
+        };
     }
 
     private static (int Width, int Height) ResolveViewportSize(Instance instance, int tierIndex, int requestedWidth,

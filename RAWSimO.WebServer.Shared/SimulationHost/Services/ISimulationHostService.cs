@@ -52,4 +52,9 @@ public interface ISimulationHostService : IService<ISimulationHostService>
     /// Append tasks (orders) to the running simulation.
     /// </summary>
     UnaryResult<AppendTasksResponse> AppendTasks(AppendTasksRequest request);
+
+    /// <summary>
+    /// Update render options used by server-side frame output.
+    /// </summary>
+    UnaryResult<UpdateRenderOptionsResponse> UpdateRenderOptions(UpdateRenderOptionsRequest request);
 }

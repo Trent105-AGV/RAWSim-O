@@ -105,6 +105,26 @@ public sealed record RenderFrameResponse(
 );
 
 [MessagePackObject]
+public sealed record UpdateRenderOptionsRequest(
+    [property: Key(0)] bool DrawBots,
+    [property: Key(1)] bool DrawPods,
+    [property: Key(2)] bool DrawStations,
+    [property: Key(3)] bool DrawWaypoints,
+    [property: Key(4)] int? TierIndex = null
+);
+
+[MessagePackObject]
+public sealed record UpdateRenderOptionsResponse(
+    [property: Key(0)] bool Accepted,
+    [property: Key(1)] bool DrawBots,
+    [property: Key(2)] bool DrawPods,
+    [property: Key(3)] bool DrawStations,
+    [property: Key(4)] bool DrawWaypoints,
+    [property: Key(5)] int TierIndex,
+    [property: Key(6)] string? Error = null
+);
+
+[MessagePackObject]
 public sealed record StartResponse(
     [property: Key(0)] ESimulationStartResult Result,
     [property: Key(1)] string? Error = null
