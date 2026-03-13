@@ -8,6 +8,19 @@ public sealed record SimulationCircleDto(
     double Orientation = 0
 );
 
+public sealed record SimulationPodItemDto(
+    int ItemDescriptionId,
+    int Count
+);
+
+public sealed record SimulationPodDto(
+    int Id,
+    double X,
+    double Y,
+    double Radius,
+    IReadOnlyList<SimulationPodItemDto> Contents
+);
+
 public sealed record SimulationPointDto(
     int Id,
     double X,
@@ -23,7 +36,7 @@ public sealed record SimulationDataDto(
     int OpenOrderCount,
     int CompletedOrderCount,
     IReadOnlyList<SimulationCircleDto> Bots,
-    IReadOnlyList<SimulationCircleDto> Pods,
+    IReadOnlyList<SimulationPodDto> Pods,
     IReadOnlyList<SimulationCircleDto> InputStations,
     IReadOnlyList<SimulationCircleDto> OutputStations,
     IReadOnlyList<SimulationPointDto> Waypoints

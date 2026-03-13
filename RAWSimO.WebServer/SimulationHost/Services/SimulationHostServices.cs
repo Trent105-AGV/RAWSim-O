@@ -7,6 +7,7 @@ using MagicOnion.Server;
 using Microsoft.AspNetCore.SignalR;
 using RAWSimO.Core;
 using RAWSimO.Core.IO;
+using RAWSimO.Core.Items;
 using RAWSimO.Core.Randomization;
 using RAWSimO.Rendering2D;
 using RAWSimO.WebServer.Hubs;
@@ -105,6 +106,10 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             var running = IsRunning;
             var simTime = Math.Round(SimTime, 2);
             var error = LastError;
+            var availableItemDescriptions = _instance?.ItemDescriptions
+                .OrderBy(i => i.ID)
+                .Select(i => new ItemDescriptionOption(i.ID, BuildItemDescriptionText(i)))
+                .ToArray() ?? [];
 
             var inputs = running ? _currentRunInputs : null;
             var resp = new StatusResponse(
@@ -115,7 +120,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 Setting: inputs?.Setting,
                 ControlConfig: inputs?.ControlConfig,
                 Seed: inputs?.Seed,
-                Tag: inputs?.Tag);
+                Tag: inputs?.Tag,
+                AvailableItemDescriptions: availableItemDescriptions);
 
             return UnaryResult.FromResult(resp);
         }
@@ -647,17 +653,16 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         try
         {
             var now = instance.Controller.CurrentTime;
-            var dtoOrders = new List<DTOOrder>(request.Tasks.Count);
+            var preparedOrders = new List<(Order Order, int? TargetOutputStationId)>(request.Tasks.Count);
 
             foreach (var task in request.Tasks)
             {
                 if (task.Positions.Count == 0)
                     continue;
 
-                var dtoOrder = new DTOOrder
+                var order = new Order
                 {
                     TimeStamp = task.TimeStamp.HasValue ? Math.Max(task.TimeStamp.Value, now) : now,
-                    Positions = []
                 };
 
                 foreach (var position in task.Positions)
@@ -665,23 +670,40 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                     if (position is not { Count: > 0 })
                         continue;
 
-                    dtoOrder.Positions.Add(new DTOOrderPosition
-                    {
-                        ItemDescriptionID = position.ItemDescriptionId,
-                        Count = position.Count
-                    });
+                    var itemDescription = instance.GetItemDescriptionByID(position.ItemDescriptionId);
+                    order.AddPosition(itemDescription, position.Count);
                 }
 
-                if (dtoOrder.Positions.Count > 0)
-                    dtoOrders.Add(dtoOrder);
+                if (order.Positions.Any())
+                    preparedOrders.Add((order, task.TargetOutputStationId));
             }
 
-            if (dtoOrders.Count == 0)
+            if (preparedOrders.Count == 0)
                 return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
                     Error: "No valid task positions provided"));
 
             var itemManager = instance.ItemManager;
-            var appended = itemManager?.AppendDtoOrders(dtoOrders, now) ?? 0;
+            var appended = itemManager?.AppendOrders(preparedOrders.Select(t => t.Order)) ?? 0;
+
+            foreach (var entry in preparedOrders)
+            {
+                if (!entry.TargetOutputStationId.HasValue)
+                    continue;
+
+                var station = instance.OutputStations.FirstOrDefault(s => s.ID == entry.TargetOutputStationId.Value);
+                if (station == null)
+                    continue;
+
+                itemManager?.TakeAvailableOrder(entry.Order);
+                instance.ResourceManager?.NewOrderQueuedToStation(entry.Order, station);
+
+                if (station.AssignOrder(entry.Order))
+                {
+                    itemManager?.NewOrderAssignedToStation(station, entry.Order);
+                    instance.ResourceManager?.NewOrderAssignedToStation(entry.Order, station);
+                }
+            }
+
             var pendingCount = itemManager?.GetInfoPendingOrderCount() ?? 0;
             var openCount = itemManager?.GetInfoOpenOrders()?.Count() ?? 0;
             var completedCount = itemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
@@ -974,7 +996,14 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             : [];
 
         var pods = options.DrawPods
-            ? tier.CurrentPods.Select(p => new SimulationCircleDto(p.ID, p.X, p.Y, p.Radius)).ToArray()
+            ? tier.CurrentPods.Select(p =>
+            {
+                var contents = instance.ItemDescriptions
+                    .Select(item => new SimulationPodItemDto(item.ID, p.CountAvailable(item)))
+                    .Where(entry => entry.Count > 0)
+                    .ToArray();
+                return new SimulationPodDto(p.ID, p.X, p.Y, p.Radius, contents);
+            }).ToArray()
             : [];
 
         var inputStations = options.DrawStations
@@ -1009,6 +1038,21 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             InputStations: inputStations,
             OutputStations: outputStations,
             Waypoints: waypoints);
+    }
+
+    private static string BuildItemDescriptionText(ItemDescription itemDescription)
+    {
+        if (itemDescription is ColoredLetterDescription letter)
+            return $"Letter {letter.Letter} / {letter.Color}";
+
+        if (itemDescription is SimpleItemDescription simple)
+            return $"SimpleItem hue={simple.Hue:0.###}, weight={simple.Weight:0.###}";
+
+        var fallback = itemDescription.GetInfoDescription();
+        if (!string.IsNullOrWhiteSpace(fallback))
+            return fallback;
+
+        return itemDescription.GetInfoType().ToString();
     }
 
     private static (int Width, int Height) ResolveViewportSize(Instance instance, int tierIndex, int requestedWidth,

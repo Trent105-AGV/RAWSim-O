@@ -37,7 +37,8 @@ public sealed record AppendTaskPositionRequest(
 [MessagePackObject]
 public sealed record AppendTaskRequest(
     [property: Key(0)] double? TimeStamp,
-    [property: Key(1)] IReadOnlyList<AppendTaskPositionRequest> Positions
+    [property: Key(1)] IReadOnlyList<AppendTaskPositionRequest> Positions,
+    [property: Key(2)] int? TargetOutputStationId = null
 );
 
 [MessagePackObject]
@@ -84,7 +85,14 @@ public sealed record StatusResponse(
     [property: Key(4)] string? Setting = null,
     [property: Key(5)] string? ControlConfig = null,
     [property: Key(6)] int? Seed = null,
-    [property: Key(7)] string? Tag = null
+    [property: Key(7)] string? Tag = null,
+    [property: Key(8)] IReadOnlyList<ItemDescriptionOption>? AvailableItemDescriptions = null
+);
+
+[MessagePackObject]
+public sealed record ItemDescriptionOption(
+    [property: Key(0)] int Id,
+    [property: Key(1)] string Description
 );
 
 [MessagePackObject]
