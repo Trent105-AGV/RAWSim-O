@@ -47,4 +47,14 @@ public interface ISimulationHostService : IService<ISimulationHostService>
     /// Get the latest rendered frame
     /// </summary>
     UnaryResult<RenderFrameResponse> GetLatestFrame(RenderFrameRequest request);
+
+    /// <summary>
+    /// Append tasks (orders) to the running simulation.
+    /// </summary>
+    UnaryResult<AppendTasksResponse> AppendTasks(AppendTasksRequest request);
+
+    /// <summary>
+    /// Update render options used by server-side frame output.
+    /// </summary>
+    UnaryResult<UpdateRenderOptionsResponse> UpdateRenderOptions(UpdateRenderOptionsRequest request);
 }

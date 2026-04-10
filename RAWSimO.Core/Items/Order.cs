@@ -15,7 +15,7 @@ public class Order : IOrderInfo
     /// <summary>
     /// Creates a new instance of the order.
     /// </summary>
-    internal Order() { TimeStampSubmit = double.PositiveInfinity; DueTime = double.PositiveInfinity; }
+    public Order() { TimeStampSubmit = double.PositiveInfinity; DueTime = double.PositiveInfinity; }
 
     #endregion
 

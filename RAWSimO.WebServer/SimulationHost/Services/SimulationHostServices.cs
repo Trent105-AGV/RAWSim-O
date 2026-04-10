@@ -7,6 +7,7 @@ using MagicOnion.Server;
 using Microsoft.AspNetCore.SignalR;
 using RAWSimO.Core;
 using RAWSimO.Core.IO;
+using RAWSimO.Core.Items;
 using RAWSimO.Core.Randomization;
 using RAWSimO.Rendering2D;
 using RAWSimO.WebServer.Hubs;
@@ -21,6 +22,8 @@ public interface ISimulationStreamService
 {
     Task StreamFramesSse(HttpResponse response, int widthPx, int heightPx, int tierIndex,
         RenderOptions? options, CancellationToken ct);
+
+    Task StreamSimulationDataSse(HttpResponse response, CancellationToken ct);
 }
 
 public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClient> hub)
@@ -59,6 +62,11 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     private volatile RenderFrameDto? _latestFrame;
 
+    private int _preferredViewportWidthPx = 800;
+    private int _preferredViewportHeightPx = 600;
+    private RenderOptions _currentRenderOptions = new();
+    private int _currentRenderTierIndex;
+
     public bool IsRunning
     {
         get
@@ -95,9 +103,13 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     {
         lock (_gate)
         {
-            var running = _runTask is { IsCompleted: false };
-            var simTime = _instance?.Controller?.CurrentTime ?? 0;
-            var error = _lastError?.ToString();
+            var running = IsRunning;
+            var simTime = Math.Round(SimTime, 2);
+            var error = LastError;
+            var availableItemDescriptions = _instance?.ItemDescriptions
+                .OrderBy(i => i.ID)
+                .Select(i => new ItemDescriptionOption(i.ID, BuildItemDescriptionText(i)))
+                .ToArray() ?? [];
 
             var inputs = running ? _currentRunInputs : null;
             var resp = new StatusResponse(
@@ -108,7 +120,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 Setting: inputs?.Setting,
                 ControlConfig: inputs?.ControlConfig,
                 Seed: inputs?.Seed,
-                Tag: inputs?.Tag);
+                Tag: inputs?.Tag,
+                AvailableItemDescriptions: availableItemDescriptions);
 
             return UnaryResult.FromResult(resp);
         }
@@ -137,6 +150,16 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             _lastError = null;
             _latestFrame = null;
             _isPaused = false;
+            _preferredViewportWidthPx = SanitizeViewportDimension(request.WidthPx, 800);
+            _preferredViewportHeightPx = SanitizeViewportDimension(request.HeightPx, 600);
+            _currentRenderOptions = new RenderOptions
+            {
+                DrawBots = true,
+                DrawPods = true,
+                DrawStations = true,
+                DrawWaypoints = false
+            };
+            _currentRenderTierIndex = 0;
             _statisticsOutputDirName = null;
             _currentRunInputs = null;
 
@@ -612,16 +635,144 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         return UnaryResult.FromResult(true);
     }
 
-    public UnaryResult<RenderFrameResponse> GetLatestFrame(RenderFrameRequest request)
+    public UnaryResult<AppendTasksResponse> AppendTasks(AppendTasksRequest request)
     {
-        var frameDto = GetLatestFrameDto(request.WidthPx, request.HeightPx, request.TierIndex,
-            new RenderOptions
+        if (request.Tasks.Count == 0)
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, Error: "Tasks are required"));
+
+        Instance? instance;
+        lock (_gate)
+        {
+            if (_runTask is not { IsCompleted: false } || _instance is null)
+                return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
+                    Error: "Simulation must be running before appending tasks"));
+
+            instance = _instance;
+        }
+
+        try
+        {
+            var now = instance.Controller.CurrentTime;
+            var preparedOrders = new List<(Order Order, int? TargetOutputStationId)>(request.Tasks.Count);
+
+            foreach (var task in request.Tasks)
+            {
+                if (task.Positions.Count == 0)
+                    continue;
+
+                var order = new Order
+                {
+                    TimeStamp = task.TimeStamp.HasValue ? Math.Max(task.TimeStamp.Value, now) : now,
+                };
+
+                foreach (var position in task.Positions)
+                {
+                    if (position is not { Count: > 0 })
+                        continue;
+
+                    var itemDescription = instance.GetItemDescriptionByID(position.ItemDescriptionId);
+                    order.AddPosition(itemDescription, position.Count);
+                }
+
+                if (order.Positions.Any())
+                    preparedOrders.Add((order, task.TargetOutputStationId));
+            }
+
+            if (preparedOrders.Count == 0)
+                return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
+                    Error: "No valid task positions provided"));
+
+            var itemManager = instance.ItemManager;
+            var appended = itemManager?.AppendOrders(preparedOrders.Select(t => t.Order)) ?? 0;
+
+            foreach (var entry in preparedOrders)
+            {
+                if (!entry.TargetOutputStationId.HasValue)
+                    continue;
+
+                var station = instance.OutputStations.FirstOrDefault(s => s.ID == entry.TargetOutputStationId.Value);
+                if (station == null)
+                    continue;
+
+                itemManager?.TakeAvailableOrder(entry.Order);
+                instance.ResourceManager?.NewOrderQueuedToStation(entry.Order, station);
+
+                if (station.AssignOrder(entry.Order))
+                {
+                    itemManager?.NewOrderAssignedToStation(station, entry.Order);
+                    instance.ResourceManager?.NewOrderAssignedToStation(entry.Order, station);
+                }
+            }
+
+            var pendingCount = itemManager?.GetInfoPendingOrderCount() ?? 0;
+            var openCount = itemManager?.GetInfoOpenOrders()?.Count() ?? 0;
+            var completedCount = itemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
+
+            return UnaryResult.FromResult(new AppendTasksResponse(
+                appended > 0,
+                appended,
+                pendingCount,
+                openCount,
+                completedCount,
+                appended > 0 ? null : "Failed to append tasks"));
+        }
+        catch (Exception ex)
+        {
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, Error: ex.ToString()));
+        }
+    }
+
+    public UnaryResult<UpdateRenderOptionsResponse> UpdateRenderOptions(UpdateRenderOptionsRequest request)
+    {
+        lock (_gate)
+        {
+            if (_runTask is not { IsCompleted: false } || _instance is null)
+                return UnaryResult.FromResult(new UpdateRenderOptionsResponse(
+                    false,
+                    _currentRenderOptions.DrawBots,
+                    _currentRenderOptions.DrawPods,
+                    _currentRenderOptions.DrawStations,
+                    _currentRenderOptions.DrawWaypoints,
+                    _currentRenderTierIndex,
+                    "Simulation must be running before updating render options"));
+
+            _currentRenderOptions = new RenderOptions
             {
                 DrawBots = request.DrawBots,
                 DrawPods = request.DrawPods,
                 DrawStations = request.DrawStations,
-                DrawWaypoints = request.DrawWaypoints
-            });
+                DrawWaypoints = request.DrawWaypoints,
+                PaddingPx = _currentRenderOptions.PaddingPx
+            };
+
+            var tierCount = _instance.Compound?.Tiers?.Count ?? 0;
+            if (request.TierIndex.HasValue)
+            {
+                _currentRenderTierIndex = tierCount > 0
+                    ? Math.Clamp(request.TierIndex.Value, 0, tierCount - 1)
+                    : 0;
+            }
+
+            // Invalidate cached frame to apply updated render style immediately.
+            _latestFrame = null;
+
+            return UnaryResult.FromResult(new UpdateRenderOptionsResponse(
+                true,
+                _currentRenderOptions.DrawBots,
+                _currentRenderOptions.DrawPods,
+                _currentRenderOptions.DrawStations,
+                _currentRenderOptions.DrawWaypoints,
+                _currentRenderTierIndex));
+        }
+    }
+
+    public UnaryResult<RenderFrameResponse> GetLatestFrame(RenderFrameRequest request)
+    {
+        int tierIndex;
+        lock (_gate)
+            tierIndex = _currentRenderTierIndex;
+
+        var frameDto = GetLatestFrameDto(request.WidthPx, request.HeightPx, tierIndex, null);
 
         var resp = new RenderFrameResponse(
             frameDto.ViewportWidthPx,
@@ -635,8 +786,11 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     private RenderFrameDto GetLatestFrameDto(int widthPx, int heightPx, int tierIndex, RenderOptions? options)
     {
+        var requestedWidth = SanitizeViewportDimension(widthPx, _preferredViewportWidthPx);
+        var requestedHeight = SanitizeViewportDimension(heightPx, _preferredViewportHeightPx);
         var cached = _latestFrame;
-        if (cached is not null && cached.ViewportWidthPx == widthPx && cached.ViewportHeightPx == heightPx &&
+        if (cached is not null && cached.ViewportWidthPx == requestedWidth &&
+            cached.ViewportHeightPx == requestedHeight &&
             cached.TierIndex == tierIndex)
             return cached;
 
@@ -645,9 +799,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             instance = _instance;
 
         if (instance is null)
-            return RenderFrameDto.Empty(widthPx, heightPx, tierIndex);
+            return RenderFrameDto.Empty(requestedWidth, requestedHeight, tierIndex);
 
-        return BuildFrame(instance, widthPx, heightPx, tierIndex, options);
+        return BuildFrame(instance, requestedWidth, requestedHeight, tierIndex, options);
     }
 
     private static byte[]? SerializeFrameData(RenderFrameDto frameDto)
@@ -689,7 +843,16 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
                 if (steps % frameEverySteps == 0)
                 {
-                    var frame = BuildFrame(instance, 800, 600, tierIndex: 0, options: null);
+                    RenderOptions runOptions;
+                    int runTierIndex;
+                    lock (_gate)
+                    {
+                        runOptions = CloneRenderOptions(_currentRenderOptions);
+                        runTierIndex = _currentRenderTierIndex;
+                    }
+
+                    var frame = BuildFrame(instance, _preferredViewportWidthPx, _preferredViewportHeightPx,
+                        tierIndex: runTierIndex, options: runOptions);
                     _latestFrame = frame;
                 }
 
@@ -724,13 +887,53 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     private RenderFrameDto BuildFrame(Instance instance, int widthPx, int heightPx, int tierIndex,
         RenderOptions? options)
     {
-        var viewport = new RectF(0, 0, widthPx, heightPx);
+        var requestedWidth = SanitizeViewportDimension(widthPx, _preferredViewportWidthPx);
+        var requestedHeight = SanitizeViewportDimension(heightPx, _preferredViewportHeightPx);
+        var (actualWidth, actualHeight) = ResolveViewportSize(instance, tierIndex, requestedWidth, requestedHeight);
+
+        var viewport = new RectF(0, 0, actualWidth, actualHeight);
         var frame = _renderer.Build(instance, tierIndex, viewport, options);
-        return RenderFrameDto.From(frame, widthPx, heightPx, tierIndex, instance.Controller.CurrentTime);
+        return RenderFrameDto.From(frame, actualWidth, actualHeight, tierIndex, instance.Controller.CurrentTime);
     }
 
     public async Task StreamFramesSse(HttpResponse response, int widthPx, int heightPx, int tierIndex,
         RenderOptions? options, CancellationToken ct)
+    {
+        var requestedWidth = SanitizeViewportDimension(widthPx, _preferredViewportWidthPx);
+        var requestedHeight = SanitizeViewportDimension(heightPx, _preferredViewportHeightPx);
+
+        response.Headers.CacheControl = "no-cache";
+        response.Headers.Connection = "keep-alive";
+        response.ContentType = "text/event-stream";
+
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        while (!ct.IsCancellationRequested)
+        {
+            Instance? instance;
+            RenderOptions streamOptions;
+            int streamTierIndex;
+            lock (_gate)
+            {
+                instance = _instance;
+                streamOptions = CloneRenderOptions(_currentRenderOptions);
+                streamTierIndex = _currentRenderTierIndex;
+            }
+
+            var payload = instance is null
+                ? RenderFrameDto.Empty(requestedWidth, requestedHeight, streamTierIndex)
+                : BuildFrame(instance, requestedWidth, requestedHeight, streamTierIndex, streamOptions);
+
+            var json = JsonSerializer.Serialize(payload, jsonOptions);
+            var bytes = Encoding.UTF8.GetBytes($"data: {json}\n\n");
+            await response.Body.WriteAsync(bytes, ct);
+            await response.Body.FlushAsync(ct);
+
+            await Task.Delay(100, ct);
+        }
+    }
+
+    public async Task StreamSimulationDataSse(HttpResponse response, CancellationToken ct)
     {
         response.Headers.CacheControl = "no-cache";
         response.Headers.Connection = "keep-alive";
@@ -741,13 +944,16 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         while (!ct.IsCancellationRequested)
         {
             Instance? instance;
+            RenderOptions dataOptions;
+            int dataTierIndex;
             lock (_gate)
+            {
                 instance = _instance;
+                dataOptions = CloneRenderOptions(_currentRenderOptions);
+                dataTierIndex = _currentRenderTierIndex;
+            }
 
-            var payload = instance is null
-                ? RenderFrameDto.Empty(widthPx, heightPx, tierIndex)
-                : BuildFrame(instance, widthPx, heightPx, tierIndex, options);
-
+            var payload = BuildSimulationData(instance, dataTierIndex, dataOptions);
             var json = JsonSerializer.Serialize(payload, jsonOptions);
             var bytes = Encoding.UTF8.GetBytes($"data: {json}\n\n");
             await response.Body.WriteAsync(bytes, ct);
@@ -755,5 +961,121 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
             await Task.Delay(100, ct);
         }
+    }
+
+    private static int SanitizeViewportDimension(int value, int fallback)
+    {
+        if (value <= 0)
+            return Math.Max(1, fallback);
+
+        return value;
+    }
+
+    private static RenderOptions CloneRenderOptions(RenderOptions options)
+    {
+        return new RenderOptions
+        {
+            DrawBots = options.DrawBots,
+            DrawPods = options.DrawPods,
+            DrawStations = options.DrawStations,
+            DrawWaypoints = options.DrawWaypoints,
+            PaddingPx = options.PaddingPx
+        };
+    }
+
+    private static SimulationDataDto BuildSimulationData(Instance? instance, int tierIndex, RenderOptions options)
+    {
+        if (instance?.Compound?.Tiers == null || instance.Compound.Tiers.Count == 0)
+            return SimulationDataDto.Empty(tierIndex, 1, 1);
+
+        var validTierIndex = Math.Clamp(tierIndex, 0, instance.Compound.Tiers.Count - 1);
+        var tier = instance.Compound.Tiers[validTierIndex];
+
+        var bots = options.DrawBots
+            ? tier.CurrentBots.Select(b => new SimulationCircleDto(b.ID, b.X, b.Y, b.Radius, b.Orientation)).ToArray()
+            : [];
+
+        var pods = options.DrawPods
+            ? tier.CurrentPods.Select(p =>
+            {
+                var contents = instance.ItemDescriptions
+                    .Select(item => new SimulationPodItemDto(item.ID, p.CountAvailable(item)))
+                    .Where(entry => entry.Count > 0)
+                    .ToArray();
+                return new SimulationPodDto(p.ID, p.X, p.Y, p.Radius, contents);
+            }).ToArray()
+            : [];
+
+        var inputStations = options.DrawStations
+            ? instance.InputStations.Where(s => ReferenceEquals(s.Tier, tier))
+                .Select(s => new SimulationCircleDto(s.ID, s.X, s.Y, s.Radius)).ToArray()
+            : [];
+
+        var outputStations = options.DrawStations
+            ? instance.OutputStations.Where(s => ReferenceEquals(s.Tier, tier))
+                .Select(s => new SimulationCircleDto(s.ID, s.X, s.Y, s.Radius)).ToArray()
+            : [];
+
+        var waypoints = options.DrawWaypoints
+            ? instance.Waypoints.Where(w => ReferenceEquals(w.Tier, tier))
+                .Select(w => new SimulationPointDto(w.ID, w.X, w.Y)).ToArray()
+            : [];
+
+        var pendingCount = instance.ItemManager?.GetInfoPendingOrderCount() ?? 0;
+        var openCount = instance.ItemManager?.GetInfoOpenOrders()?.Count() ?? 0;
+        var completedCount = instance.ItemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
+
+        return new SimulationDataDto(
+            TierIndex: validTierIndex,
+            SimTime: instance.Controller?.CurrentTime ?? 0,
+            WorldWidth: tier.Length,
+            WorldHeight: tier.Width,
+            PendingOrderCount: pendingCount,
+            OpenOrderCount: openCount,
+            CompletedOrderCount: completedCount,
+            Bots: bots,
+            Pods: pods,
+            InputStations: inputStations,
+            OutputStations: outputStations,
+            Waypoints: waypoints);
+    }
+
+    private static string BuildItemDescriptionText(ItemDescription itemDescription)
+    {
+        if (itemDescription is ColoredLetterDescription letter)
+            return $"Letter {letter.Letter} / {letter.Color}";
+
+        if (itemDescription is SimpleItemDescription simple)
+            return $"SimpleItem hue={simple.Hue:0.###}, weight={simple.Weight:0.###}";
+
+        var fallback = itemDescription.GetInfoDescription();
+        if (!string.IsNullOrWhiteSpace(fallback))
+            return fallback;
+
+        return itemDescription.GetInfoType().ToString();
+    }
+
+    private static (int Width, int Height) ResolveViewportSize(Instance instance, int tierIndex, int requestedWidth,
+        int requestedHeight)
+    {
+        if (instance.Compound?.Tiers == null || instance.Compound.Tiers.Count == 0)
+            return (requestedWidth, requestedHeight);
+
+        var validTierIndex = Math.Clamp(tierIndex, 0, instance.Compound.Tiers.Count - 1);
+        var tier = instance.Compound.Tiers[validTierIndex];
+        if (tier == null || tier.Width <= 0 || tier.Length <= 0)
+            return (requestedWidth, requestedHeight);
+
+        var aspect = tier.Length / tier.Width;
+        if (aspect <= 0 || double.IsNaN(aspect) || double.IsInfinity(aspect))
+            return (requestedWidth, requestedHeight);
+
+        var widthByHeight = (int)Math.Round(requestedHeight * aspect);
+        var heightByWidth = (int)Math.Round(requestedWidth / aspect);
+
+        if (widthByHeight <= requestedWidth)
+            return (Math.Max(1, widthByHeight), requestedHeight);
+
+        return (requestedWidth, Math.Max(1, heightByWidth));
     }
 }

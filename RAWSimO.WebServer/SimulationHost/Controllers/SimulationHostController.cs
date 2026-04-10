@@ -69,6 +69,20 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 		return Ok(await hostService.GetLatestFrame(request));
 	}
 
+	[HttpPost]
+	[AllowAnonymous]
+	public async Task<IActionResult> AppendTasks([FromBody] AppendTasksRequest request)
+	{
+		return Ok(await hostService.AppendTasks(request));
+	}
+
+	[HttpPost]
+	[AllowAnonymous]
+	public async Task<IActionResult> UpdateRenderOptions([FromBody] UpdateRenderOptionsRequest request)
+	{
+		return Ok(await hostService.UpdateRenderOptions(request));
+	}
+
 	[HttpGet]
 	[AllowAnonymous]
 	public async Task StreamFrames(
@@ -93,5 +107,12 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 				DrawWaypoints = drawWaypoints
 			},
 			HttpContext.RequestAborted);
+	}
+
+	[HttpGet]
+	[AllowAnonymous]
+	public async Task StreamSimulationData()
+	{
+		await streamService.StreamSimulationDataSse(Response, HttpContext.RequestAborted);
 	}
 }
