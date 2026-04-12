@@ -9,7 +9,11 @@ using RAWSimO.Core.Control.Defaults.Repositioning;
 using RAWSimO.Core.Control.Defaults.StationActivation;
 using RAWSimO.Core.Control.Defaults.TaskAllocation;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Control;
 
@@ -18,6 +22,23 @@ namespace RAWSimO.Core.Control;
 /// </summary>
 public class Controller
 {
+    private const int ParallelUpdateablesMinThreshold = 128;
+
+    private readonly bool _profilingEnabled;
+    private readonly long _profilingLogIntervalTicks;
+    private readonly int _profilingTopUpdateables;
+
+    private readonly Dictionary<string, long> _profileUpdateableTicks = new(StringComparer.Ordinal);
+
+    private long _profilingNextLogTimestamp;
+    private long _profileTotalTicks;
+    private long _profileGetNextEventTicks;
+    private long _profileCollisionWindowTicks;
+    private long _profileWaitWorkerTicks;
+    private long _profileMethodManagerUpdateTicks;
+    private long _profileUpdateablesUpdateTicks;
+    private long _profileStepCount;
+
     /// <summary>
     /// Creates a new controller instance.
     /// </summary>
@@ -25,6 +46,14 @@ public class Controller
     public Controller(Instance instance)
     {
         Instance = instance;
+
+        _profilingEnabled = instance.SettingConfig.EnablePerformanceProfiling;
+        _profilingLogIntervalTicks = TimeSpan.FromMilliseconds(
+            Math.Max(500, instance.SettingConfig.PerformanceProfilingLogIntervalMs)).Ticks;
+        _profilingTopUpdateables = Math.Max(1, instance.SettingConfig.PerformanceProfilingTopUpdateables);
+        if (_profilingEnabled)
+            _profilingNextLogTimestamp = DateTime.UtcNow.Ticks + _profilingLogIntervalTicks;
+
         // Init path manager
         PathManager = instance.ControllerConfig.PathPlanningConfig.GetMethodType() switch
         {
@@ -230,32 +259,182 @@ public class Controller
         _updateFinishTime = _currentTime + elapsedTime;
         while (_currentTime < _updateFinishTime)
         {
+            var loopStartTs = _profilingEnabled ? Stopwatch.GetTimestamp() : 0;
+            var updateables = Instance.Updateables as IList<Interfaces.IUpdateable> ?? Instance.Updateables.ToList();
+
             // --> Get the next event time
+            var getNextEventStartTs = _profilingEnabled ? Stopwatch.GetTimestamp() : 0;
             var nextTime =
                 Math.Min(_updateFinishTime, // Stop after all time is elapsed
                     Math.Min(MethodManager.GetNextEventTime(_currentTime), // Check the meta manager
-                        Instance.Updateables.Min(u => u.GetNextEventTime(_currentTime)))); // Jump to next event of all agents
+                        GetNextUpdateableEventTime(updateables, _currentTime))); // Jump to next event of all agents
+            if (_profilingEnabled)
+                _profileGetNextEventTicks += ToTimeSpanTicks(getNextEventStartTs, Stopwatch.GetTimestamp());
 
             // See if a potential collision will happen before the next event
+            var collisionStartTs = _profilingEnabled ? Stopwatch.GetTimestamp() : 0;
             var minTimeDelta = Math.Min(Instance.Compound.GetShortestTimeWithoutCollision(), nextTime - _currentTime);
             minTimeDelta = Math.Max(minTimeDelta, minimumUpdateTime);	// Make sure update rate never gets too slow
+            if (_profilingEnabled)
+                _profileCollisionWindowTicks += ToTimeSpanTicks(collisionStartTs, Stopwatch.GetTimestamp());
 
             // Update by at least the minimum, but don't go past the next time
             nextTime = Math.Min(_updateFinishTime, _currentTime + minTimeDelta);
 
             // Wait for unfinished optimization workers
+            var waitStartTs = _profilingEnabled ? Stopwatch.GetTimestamp() : 0;
             WaitForUnfinishedWorker(nextTime);
+            if (_profilingEnabled)
+                _profileWaitWorkerTicks += ToTimeSpanTicks(waitStartTs, Stopwatch.GetTimestamp());
 
             // --> Run up til the next event
             // Update method manager (needs to be updated first, because it might change the update-list)
+            var methodUpdateStartTs = _profilingEnabled ? Stopwatch.GetTimestamp() : 0;
             MethodManager.Update(_currentTime, nextTime);
+            if (_profilingEnabled)
+                _profileMethodManagerUpdateTicks += ToTimeSpanTicks(methodUpdateStartTs, Stopwatch.GetTimestamp());
+
             // Update all agents in the list
+            var updateablesUpdateStartTs = _profilingEnabled ? Stopwatch.GetTimestamp() : 0;
             foreach (var updateable in Instance.Updateables)
-                updateable.Update(_currentTime, nextTime);
+            {
+                if (_profilingEnabled)
+                {
+                    var updateableStartTs = Stopwatch.GetTimestamp();
+                    updateable.Update(_currentTime, nextTime);
+                    var elapsedTicks = ToTimeSpanTicks(updateableStartTs, Stopwatch.GetTimestamp());
+                    var updateableName = updateable.GetType().Name;
+                    if (_profileUpdateableTicks.TryGetValue(updateableName, out var currentTicks))
+                        _profileUpdateableTicks[updateableName] = currentTicks + elapsedTicks;
+                    else
+                        _profileUpdateableTicks[updateableName] = elapsedTicks;
+                }
+                else
+                {
+                    updateable.Update(_currentTime, nextTime);
+                }
+            }
+
+            if (_profilingEnabled)
+                _profileUpdateablesUpdateTicks += ToTimeSpanTicks(updateablesUpdateStartTs, Stopwatch.GetTimestamp());
 
             // Set new time
             _currentTime = nextTime;
+
+            if (_profilingEnabled)
+            {
+                _profileTotalTicks += ToTimeSpanTicks(loopStartTs, Stopwatch.GetTimestamp());
+                _profileStepCount++;
+                EmitProfilingLogIfDue();
+            }
         }
+    }
+
+    private static long ToTimeSpanTicks(long startTimestamp, long endTimestamp)
+    {
+        return (endTimestamp - startTimestamp) * TimeSpan.TicksPerSecond / Stopwatch.Frequency;
+    }
+
+    private void EmitProfilingLogIfDue()
+    {
+        var nowTicks = DateTime.UtcNow.Ticks;
+        if (nowTicks < _profilingNextLogTimestamp)
+            return;
+
+        _profilingNextLogTimestamp = nowTicks + _profilingLogIntervalTicks;
+        if (_profileTotalTicks <= 0)
+            return;
+
+        var totalMs = TimeSpan.FromTicks(_profileTotalTicks).TotalMilliseconds;
+        var getNextMs = TimeSpan.FromTicks(_profileGetNextEventTicks).TotalMilliseconds;
+        var collisionMs = TimeSpan.FromTicks(_profileCollisionWindowTicks).TotalMilliseconds;
+        var waitMs = TimeSpan.FromTicks(_profileWaitWorkerTicks).TotalMilliseconds;
+        var methodMs = TimeSpan.FromTicks(_profileMethodManagerUpdateTicks).TotalMilliseconds;
+        var updateablesMs = TimeSpan.FromTicks(_profileUpdateablesUpdateTicks).TotalMilliseconds;
+
+        var avgStepMs = _profileStepCount > 0 ? totalMs / _profileStepCount : 0.0;
+        var stage = _currentTime < Instance.SettingConfig.SimulationWarmupTime ? "warmup" : "runtime";
+
+        var builder = new StringBuilder();
+        builder.Append(
+            $"[Perf][{stage}] sim_t={_currentTime:0.###}s steps={_profileStepCount} avg_step={avgStepMs:0.###}ms ");
+        builder.Append(
+            $"total={totalMs:0.###}ms next={getNextMs:0.###}ms ({Percent(getNextMs, totalMs):0.0}%) ");
+        builder.Append(
+            $"collision={collisionMs:0.###}ms ({Percent(collisionMs, totalMs):0.0}%) ");
+        builder.Append($"wait={waitMs:0.###}ms ({Percent(waitMs, totalMs):0.0}%) ");
+        builder.Append($"method={methodMs:0.###}ms ({Percent(methodMs, totalMs):0.0}%) ");
+        builder.Append($"update={updateablesMs:0.###}ms ({Percent(updateablesMs, totalMs):0.0}%)");
+
+        var top = _profileUpdateableTicks
+            .OrderByDescending(kv => kv.Value)
+            .Take(_profilingTopUpdateables)
+            .Select(kv =>
+                $"{kv.Key}={TimeSpan.FromTicks(kv.Value).TotalMilliseconds:0.###}ms({Percent(TimeSpan.FromTicks(kv.Value).TotalMilliseconds, totalMs):0.0}%)")
+            .ToArray();
+        if (top.Length > 0)
+            builder.Append(" | top_updateables: " + string.Join(", ", top));
+
+        Instance.LogDefault(builder.ToString());
+
+        _profileTotalTicks = 0;
+        _profileGetNextEventTicks = 0;
+        _profileCollisionWindowTicks = 0;
+        _profileWaitWorkerTicks = 0;
+        _profileMethodManagerUpdateTicks = 0;
+        _profileUpdateablesUpdateTicks = 0;
+        _profileStepCount = 0;
+        _profileUpdateableTicks.Clear();
+    }
+
+    private static double Percent(double part, double total)
+    {
+        if (total <= 0)
+            return 0;
+
+        return (part / total) * 100.0;
+    }
+
+    private static double GetNextUpdateableEventTime(IList<Interfaces.IUpdateable> updateables, double currentTime)
+    {
+        if (updateables.Count == 0)
+            return double.PositiveInfinity;
+
+        if (Environment.ProcessorCount <= 1 || updateables.Count < ParallelUpdateablesMinThreshold)
+        {
+            var sequentialMin = double.PositiveInfinity;
+            for (var i = 0; i < updateables.Count; i++)
+            {
+                var eventTime = updateables[i].GetNextEventTime(currentTime);
+                if (eventTime < sequentialMin)
+                    sequentialMin = eventTime;
+            }
+
+            return sequentialMin;
+        }
+
+        var globalMin = double.PositiveInfinity;
+        var sync = new object();
+
+        Parallel.For<double>(
+            0,
+            updateables.Count,
+            () => double.PositiveInfinity,
+            (index, _, localMin) =>
+            {
+                var eventTime = updateables[index].GetNextEventTime(currentTime);
+                return eventTime < localMin ? eventTime : localMin;
+            },
+            localMin =>
+            {
+                lock (sync)
+                {
+                    if (localMin < globalMin)
+                        globalMin = localMin;
+                }
+            });
+
+        return globalMin;
     }
 
     #region Manager exchange handling

@@ -88,6 +88,21 @@ public class SettingConfiguration
     /// </summary>
     public readonly DebugMode DebugMode = DebugMode.RealTimeAndMemory;
 
+    /// <summary>
+    /// Enables lightweight runtime performance profiling logs (phase timing + top updateables).
+    /// </summary>
+    public bool EnablePerformanceProfiling = false;
+
+    /// <summary>
+    /// Interval in milliseconds for emitting profiling logs.
+    /// </summary>
+    public int PerformanceProfilingLogIntervalMs = 5000;
+
+    /// <summary>
+    /// Number of updateable types to include in the top-hotspot list per profiling log.
+    /// </summary>
+    public int PerformanceProfilingTopUpdateables = 8;
+
     #endregion
 
     #region Movement related parameters

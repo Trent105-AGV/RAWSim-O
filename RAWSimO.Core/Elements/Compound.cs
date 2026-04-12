@@ -1,6 +1,8 @@
 ﻿using RAWSimO.Core.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace RAWSimO.Core.Elements;
 
@@ -9,6 +11,8 @@ namespace RAWSimO.Core.Elements;
 /// </summary>
 public class Compound : InstanceElement, IUpdateable
 {
+    private const int ParallelTierMinThreshold = 2;
+
     #region Constructors
 
     /// <summary>
@@ -29,7 +33,37 @@ public class Compound : InstanceElement, IUpdateable
     /// Returns the shortest time without a collision respecting the current situation and speeds.
     /// </summary>
     /// <returns>The shortest time without a collision.</returns>
-    public double GetShortestTimeWithoutCollision() { return Tiers.Min(t => t.GetShortestTimeWithoutCollision()); }
+    public double GetShortestTimeWithoutCollision()
+    {
+        if (Tiers.Count == 0)
+            return double.PositiveInfinity;
+
+        if (Environment.ProcessorCount <= 1 || Tiers.Count < ParallelTierMinThreshold)
+            return Tiers.Min(t => t.GetShortestTimeWithoutCollision());
+
+        var globalMin = double.PositiveInfinity;
+        var sync = new object();
+
+        Parallel.For<double>(
+            0,
+            Tiers.Count,
+            () => double.PositiveInfinity,
+            (index, _, localMin) =>
+            {
+                var tierMin = Tiers[index].GetShortestTimeWithoutCollision();
+                return tierMin < localMin ? tierMin : localMin;
+            },
+            localMin =>
+            {
+                lock (sync)
+                {
+                    if (localMin < globalMin)
+                        globalMin = localMin;
+                }
+            });
+
+        return globalMin;
+    }
 
     #endregion
 
@@ -77,6 +111,12 @@ public class Compound : InstanceElement, IUpdateable
     /// <param name="currentTime">The time to update to.</param>
     public void Update(double lastTime, double currentTime)
     {
+        if (Environment.ProcessorCount > 1 && Tiers.Count >= ParallelTierMinThreshold)
+        {
+            Parallel.For(0, Tiers.Count, i => Tiers[i].Update(lastTime, currentTime));
+            return;
+        }
+
         foreach (var tier in Tiers)
             tier.Update(lastTime, currentTime);
     }
