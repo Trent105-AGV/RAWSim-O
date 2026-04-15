@@ -14,6 +14,8 @@ namespace RAWSimO.Core.IO;
 // ReSharper disable once InconsistentNaming
 public class InstanceIO
 {
+    private const int LargeFileBufferSize = 64 * 1024;
+
     private static readonly XmlSerializer InstanceSerializer = new(typeof(DTOInstance));
     private static readonly XmlSerializer LayoutConfigSerializer = new(typeof(LayoutConfiguration));
 
@@ -27,6 +29,44 @@ public class InstanceIO
 
     private static readonly XmlSerializer SimpleItemGeneratorConfigSerializer =
         new(typeof(SimpleItemGeneratorConfiguration));
+
+    private static StreamReader OpenTextReader(string path)
+    {
+        var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            LargeFileBufferSize,
+            FileOptions.SequentialScan);
+        return new StreamReader(stream);
+    }
+
+    private static string ReadRootElementName(string xmlPath)
+    {
+        using var stream = new FileStream(
+            xmlPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            LargeFileBufferSize,
+            FileOptions.SequentialScan);
+        var settings = new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            IgnoreComments = true,
+            IgnoreWhitespace = true
+        };
+        using var reader = XmlReader.Create(stream, settings);
+
+        while (reader.Read())
+        {
+            if (reader.NodeType == XmlNodeType.Element)
+                return reader.Name;
+        }
+
+        throw new ArgumentException("No valid instance or layout file given!");
+    }
 
     #region Read
 
@@ -51,9 +91,7 @@ public class InstanceIO
         string additionalResourceDirectory = null)
     {
         // Test for layout / instance file
-        var doc = new XmlDocument();
-        doc.Load(instancePath);
-        var rootName = doc.SelectSingleNode("/*")?.Name;
+        var rootName = ReadRootElementName(instancePath);
         bool layoutConfigurationGiven;
         if (rootName != nameof(Instance))
         {
@@ -72,7 +110,7 @@ public class InstanceIO
         {
             // Read the setting configuration
             logAction?.Invoke("Parsing setting config ...");
-            using (var sr = new StreamReader(settingConfigPath))
+            using (var sr = OpenTextReader(settingConfigPath))
             {
                 // Deserialize the xml-file
                 settingConfig = (SettingConfiguration)SettingConfigSerializer.Deserialize(sr);
@@ -108,7 +146,7 @@ public class InstanceIO
 
             // Read the control configuration
             logAction?.Invoke("Parsing control config ...");
-            using (var sr = new StreamReader(controlConfigPath))
+            using (var sr = OpenTextReader(controlConfigPath))
                 // Deserialize the xml-file
                 controlConfig = (ControlConfiguration)ControlConfigSerializer.Deserialize(sr);
         }
@@ -120,7 +158,7 @@ public class InstanceIO
             // Read the layout configuration
             logAction?.Invoke("Parsing layout config ...");
             LayoutConfiguration layoutConfig;
-            using (var sr = new StreamReader(instancePath))
+            using (var sr = OpenTextReader(instancePath))
                 // Deserialize the xml-file
                 layoutConfig = (LayoutConfiguration)LayoutConfigSerializer.Deserialize(sr);
             // Apply override config, if available
@@ -162,7 +200,7 @@ public class InstanceIO
         {
             // Read the instance
             logAction?.Invoke("Parsing instance ...");
-            using (var sr = new StreamReader(instancePath))
+            using (var sr = OpenTextReader(instancePath))
             {
                 // Deserialize the xml-file
                 var dtoInstance = (DTOInstance)InstanceSerializer.Deserialize(sr);
@@ -186,7 +224,7 @@ public class InstanceIO
         // Init reference
         DTOInstance dtoInstance;
         // Read the instance
-        using (var sr = new StreamReader(instancePath))
+        using (var sr = OpenTextReader(instancePath))
         {
             // Deserialize the xml-file
             dtoInstance = (DTOInstance)InstanceSerializer.Deserialize(sr);
@@ -206,7 +244,7 @@ public class InstanceIO
     {
         // Read the list
         OrderList list = null;
-        using var sr = new StreamReader(orderFile);
+        using var sr = OpenTextReader(orderFile);
         // Deserialize the xml-file
         var dtoConfig = (DTOOrderList)ListSerializer.Deserialize(sr);
         // Submit list to the instance object
@@ -225,7 +263,7 @@ public class InstanceIO
         // Read the config
         SimpleItemGeneratorConfiguration config;
         var searchedPath = IOHelper.FindResourceFile(file, Directory.GetCurrentDirectory());
-        using (var sr = new StreamReader(searchedPath))
+        using (var sr = OpenTextReader(searchedPath))
             // Deserialize the xml-file
             config = (SimpleItemGeneratorConfiguration)SimpleItemGeneratorConfigSerializer.Deserialize(sr);
         return config;

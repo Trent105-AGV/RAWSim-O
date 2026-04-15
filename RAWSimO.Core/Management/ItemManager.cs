@@ -7,6 +7,7 @@ using RAWSimO.Core.Randomization;
 using RAWSimO.Toolbox;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -35,7 +36,14 @@ public class ItemManager : IItemManagerInfo
         // Initialize the chosen mode
         InitializeMode();
         // Warmup item frequencies for methods using the information
+        var warmupStopwatch = Instance.SettingConfig.EnablePerformanceProfiling ? Stopwatch.StartNew() : null;
         WarmupItemFrequencies();
+        if (warmupStopwatch != null)
+        {
+            warmupStopwatch.Stop();
+            Instance.LogDefault($">>> Item frequency warmup elapsed: {warmupStopwatch.Elapsed.TotalMilliseconds:0.###}ms");
+        }
+
         // Fill inventory and generate initial lists of orders and bundles
         InitializeInventoryAndBundlesAndOrders();
     }
