@@ -569,6 +569,30 @@ public class BotNormal : Bot
     /// <param name="currentTime">time stamp: now</param>
     public override void Update(double lastTime, double currentTime)
     {
+        bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+        if (usePhysical)
+        {
+            // If we timed out (e.g. no update for 2 seconds), don't move
+            if ((DateTime.UtcNow - LastPhysicalUpdateTime).TotalSeconds > 2.0)
+            {
+                TargetForce = new double[] { 0, 0, 0, 0, 0, 0 };
+                return; // Stop processing further state updates if timed out or waiting
+            }
+
+            // Calculate hypothetical force based on velocity/target
+            // This is a naive translation from velocity to force just as a placeholder
+            TargetForce[0] = XVelocity * 100.0; // fx
+            TargetForce[1] = YVelocity * 100.0; // fy
+            TargetForce[5] = 0; // tz (yaw torque based on target could be added here)
+            
+            // Do not apply position changes directly!
+            // We just let the StateMachine update current task but we skip `X +=` logic, 
+            // but the state machine might be deeply embedded.
+            // For now, we allow the state machine to run but overwrite X,Y back to physical values if needed,
+            // or let the HttpPost update handle X/Y overrides.
+        }
+
+
         //wait short start time
         if (currentTime < 0.2)
             return;

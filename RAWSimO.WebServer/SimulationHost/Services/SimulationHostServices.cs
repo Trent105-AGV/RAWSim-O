@@ -18,6 +18,11 @@ using RAWSimO.WebServer.SimulationHost.Models;
 
 namespace RAWSimO.WebServer.SimulationHost.Services;
 
+public interface IInstanceProvider
+{
+    RAWSimO.Core.Instance? GetCurrentInstance();
+}
+
 public interface ISimulationStreamService
 {
     Task StreamFramesSse(HttpResponse response, int widthPx, int heightPx, int tierIndex,
@@ -27,7 +32,7 @@ public interface ISimulationStreamService
 }
 
 public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClient> hub)
-    : ServiceBase<ISimulationHostService>, ISimulationHostService, ISimulationStreamService
+    : ServiceBase<ISimulationHostService>, ISimulationHostService, ISimulationStreamService, IInstanceProvider
 {
     private const string StatisticsRootDirectory = "/app/out";
 
@@ -48,6 +53,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     private StreamWriter? _runLogWriter;
     private int _finalizeOnce;
+
+    public Instance? GetCurrentInstance() => _instance;
+
 
     private sealed record CurrentRunInputs(
         string Instance,

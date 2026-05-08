@@ -92,9 +92,26 @@ public abstract class Bot : Circle, IBotInfo, IUpdateable, IBotEventListener, IE
     /// </summary>
     public bool IsQueueing = false;
 
+
+    /// <summary>
+    /// Target force calculated for physical simulation (fx, fy, fz, tx, ty, tz)
+    /// </summary>
+    public double[] TargetForce { get; set; } = new double[6];
+
+    /// <summary>
+    /// Last confirmed position from Isaac Lab
+    /// </summary>
+    public double[] LastConfirmedPosition { get; set; }
+
+    /// <summary>
+    /// Last time a physical position update was received from Isaac Lab
+    /// </summary>
+    public DateTime LastPhysicalUpdateTime { get; set; } = DateTime.MinValue;
+
     #endregion
 
     #region Core
+
     /// <summary>
     /// Returns this bot's current velocity.
     /// </summary>
@@ -470,4 +487,14 @@ public abstract class Bot : Circle, IBotInfo, IUpdateable, IBotEventListener, IE
     public abstract void OnSetDownPod();
 
     #endregion
+
+    public double GetCurrentTargetX() { return TargetWaypoint != null ? TargetWaypoint.X : X; }
+    public double GetCurrentTargetY() { return TargetWaypoint != null ? TargetWaypoint.Y : Y; }
+
+    public void SetPhysicalState(double x, double y, double yaw)
+    {
+        X = x;
+        Y = y;
+        Orientation = yaw;
+    }
 }

@@ -57,4 +57,5 @@ public interface ISimulationHostService : IService<ISimulationHostService>
     /// Update render options used by server-side frame output.
     /// </summary>
     UnaryResult<UpdateRenderOptionsResponse> UpdateRenderOptions(UpdateRenderOptionsRequest request);
+
 }

@@ -9,7 +9,7 @@ namespace RAWSimO.WebServer.SimulationHost.Controllers;
 
 [ApiController]
 [Route("simulation/[action]")]
-public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService)
+public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService, IInstanceProvider instanceProvider)
 	: ControllerBase
 {
 	[HttpGet]
@@ -115,4 +115,71 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 	{
 		await streamService.StreamSimulationDataSse(Response, HttpContext.RequestAborted);
 	}
+
+        public class RobotPoseDto
+        {
+            public int robot_id { get; set; }
+            public double[]? position { get; set; }
+            public double[]? rotation { get; set; }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task StreamPhysicalDataSse()
+        {
+            Response.Headers.Append("Content-Type", "text/event-stream");
+            bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+
+            while (!HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                if (usePhysical)
+                {
+                    var instance = instanceProvider.GetCurrentInstance();
+                    if (instance != null)
+                    {
+                        foreach (var bot in instance.Bots)
+                        {
+                            var payload = new
+                            {
+                                robot_id = bot.ID,
+                                destination = new[] { bot.GetCurrentTargetX(), bot.GetCurrentTargetY(), 0.0 },
+                                position = bot.LastConfirmedPosition ?? new[] { bot.X, bot.Y, bot.Orientation },
+                                forces = bot.TargetForce ?? new[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }
+                            };
+                            await Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(payload)}\n\n");
+                        }
+                    }
+                }
+                else
+                {
+                    await Response.WriteAsync(":\n\n");
+                }
+                await Response.Body.FlushAsync();
+                await Task.Delay(100);
+            }
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public IActionResult UpdatePhysicalPose([FromBody] RobotPoseDto pose)
+        {
+            bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+            if (usePhysical)
+            {
+                var instance = instanceProvider.GetCurrentInstance();
+                if (instance != null)
+                {
+                    var bot = instance.Bots.FirstOrDefault(b => b.ID == pose.robot_id);
+                    if (bot != null && pose.position != null && pose.position.Length >= 2)
+                    {
+                        double newO = pose.rotation != null && pose.rotation.Length >= 4 ? pose.rotation[3] : bot.Orientation;
+                        bot.SetPhysicalState(pose.position[0], pose.position[1], newO);
+                        bot.LastConfirmedPosition = new[] { bot.X, bot.Y, bot.Orientation };
+                        bot.LastPhysicalUpdateTime = DateTime.UtcNow;
+                    }
+                }
+            }
+            return Ok();
+        }
+
 }
