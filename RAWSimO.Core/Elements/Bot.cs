@@ -497,4 +497,9 @@ public abstract class Bot : Circle, IBotInfo, IUpdateable, IBotEventListener, IE
         Y = y;
         Orientation = yaw;
     }
+
+    public void SetPhysicalOrientation(double yaw)
+    {
+        Orientation = yaw;
+    }
 }

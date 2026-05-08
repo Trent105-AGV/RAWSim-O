@@ -846,7 +846,10 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                     continue;
                 }
 
-                instance.Controller.Update(stepDt);
+                lock (instance)
+                {
+                    instance.Controller.Update(stepDt);
+                }
                 steps++;
 
                 if (steps % frameEverySteps == 0)

@@ -698,7 +698,11 @@ public class BotNormal : Bot
         //stop the pod (this should already be 0)
         XVelocity = YVelocity = 0;
 
-        Orientation = Physics.getOrientationAfterTimeStep(_startOrientation, _endOrientation, currentTime - _waitUntil);
+        bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+        if (!usePhysical)
+        {
+            Orientation = Physics.getOrientationAfterTimeStep(_startOrientation, _endOrientation, currentTime - _waitUntil);
+        }
 
         //set the pod orientation
         if (Pod != null && Instance.SettingConfig.RotatePods)
@@ -738,13 +742,17 @@ public class BotNormal : Bot
             NextWaypoint = null;
         }
 
-        // Try to make move. If can't ask move due to a collision, then stop
-        if (!Instance.Compound.BotCurrentTier[this].MoveBotOverride(this, xNew, yNew))
+        bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+        if (!usePhysical)
         {
-            // Log the potential collision
-            Instance.LogInfo("Potential collision (" + GetIdentfierString() + ") - adding check for crashhandler ...");
-            // Mark the bot for collision investigation
-            Instance.BotCrashHandler.AddPotentialCrashBot(this);
+            // Try to make move. If can't ask move due to a collision, then stop
+            if (!Instance.Compound.BotCurrentTier[this].MoveBotOverride(this, xNew, yNew))
+            {
+                // Log the potential collision
+                Instance.LogInfo("Potential collision (" + GetIdentfierString() + ") - adding check for crashhandler ...");
+                // Mark the bot for collision investigation
+                Instance.BotCrashHandler.AddPotentialCrashBot(this);
+            }
         }
 
         // Check whether bot is now in destination's queueing area
