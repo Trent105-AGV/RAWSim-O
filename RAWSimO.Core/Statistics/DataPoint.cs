@@ -1535,14 +1535,15 @@ public class FootprintDatapoint
         _entryValues[FootPrintEntry.PathPlanningTimeouts] = instance.StatOverallPathPlanningTimeouts;
         _entryValues[FootPrintEntry.PathPlanningTimeoutFractional] = (double)instance.StatOverallPathPlanningTimeouts / instance.Observer.TimingPathPlanningDecisionCount;
         _entryValues[FootPrintEntry.DistanceTraveled] = instance.StatOverallDistanceTraveled;
-        _entryValues[FootPrintEntry.DistanceTraveledPerBot] = instance.StatOverallDistanceTraveled / instance.Bots.Count;
+        _entryValues[FootPrintEntry.DistanceTraveledPerBot] = instance.Bots.Count == 0 ? 0 : instance.StatOverallDistanceTraveled / instance.Bots.Count;
         _entryValues[FootPrintEntry.DistanceEstimated] = instance.StatOverallDistanceEstimated;
         _entryValues[FootPrintEntry.DistanceRequestedOptimal] = instance.Bots.Sum(b => b.StatDistanceRequestedOptimal);
-        _entryValues[FootPrintEntry.TimeMoving] = instance.Bots.Average(b => b.StatTotalTimeMoving);
-        _entryValues[FootPrintEntry.TimeQueueing] = instance.Bots.Average(b => b.StatTotalTimeQueueing);
-        _entryValues[FootPrintEntry.TripDistance] = instance.StatOverallDistanceTraveled / instance.Waypoints.Sum(w => w.StatOutgoingTrips);
-        _entryValues[FootPrintEntry.TripTime] = instance.Waypoints.Sum(w => w.StatOutgoingTripTime) / instance.Waypoints.Sum(w => w.StatOutgoingTrips);
-        _entryValues[FootPrintEntry.TripTimeWithoutQueueing] = (instance.Waypoints.Sum(w => w.StatOutgoingTripTime) - instance.Bots.Sum(b => b.StatTotalTimeQueueing)) / instance.Waypoints.Sum(w => w.StatOutgoingTrips);
+        _entryValues[FootPrintEntry.TimeMoving] = instance.Bots.Count == 0 ? 0 : instance.Bots.Average(b => b.StatTotalTimeMoving);
+        _entryValues[FootPrintEntry.TimeQueueing] = instance.Bots.Count == 0 ? 0 : instance.Bots.Average(b => b.StatTotalTimeQueueing);
+        var totalOutgoingTrips = instance.Waypoints.Sum(w => w.StatOutgoingTrips);
+        _entryValues[FootPrintEntry.TripDistance] = totalOutgoingTrips == 0 ? 0 : instance.StatOverallDistanceTraveled / totalOutgoingTrips;
+        _entryValues[FootPrintEntry.TripTime] = totalOutgoingTrips == 0 ? 0 : instance.Waypoints.Sum(w => w.StatOutgoingTripTime) / totalOutgoingTrips;
+        _entryValues[FootPrintEntry.TripTimeWithoutQueueing] = totalOutgoingTrips == 0 ? 0 : (instance.Waypoints.Sum(w => w.StatOutgoingTripTime) - instance.Bots.Sum(b => b.StatTotalTimeQueueing)) / totalOutgoingTrips;
         _entryValues[FootPrintEntry.TripCount] = instance.Waypoints.Sum(w => w.StatOutgoingTrips);
         _entryValues[FootPrintEntry.LastMileTripOStationCount] = instance.OStationTripCount;
         _entryValues[FootPrintEntry.LastMileTripOStationTimeAvg] = instance.OStationTripTimeAvg;
@@ -1586,8 +1587,9 @@ public class FootprintDatapoint
         // Rates
         _entryValues[FootPrintEntry.BundleThroughputRate] = instance.StatOverallBundlesHandled / TimeSpan.FromSeconds(instance.SettingConfig.SimulationDuration).TotalHours;
         _entryValues[FootPrintEntry.ItemThroughputRate] = instance.StatOverallItemsHandled / TimeSpan.FromSeconds(instance.SettingConfig.SimulationDuration).TotalHours;
-        _entryValues[FootPrintEntry.ItemThroughputRateUB] = instance.OutputStations.Any() ? UpperBoundHelper.CalcUBItemThroughputRate(instance, instance.OutputStations.Where(s => s.StatNumItemsPicked > 0).Average(s => s.StatItemPileOn)) : 0;
-        _entryValues[FootPrintEntry.ItemThroughputRateScore] = (double)_entryValues[FootPrintEntry.ItemThroughputRate] / (double)_entryValues[FootPrintEntry.ItemThroughputRateUB];
+        var activeOutputStations = instance.OutputStations.Where(s => s.StatNumItemsPicked > 0).ToList();
+        _entryValues[FootPrintEntry.ItemThroughputRateUB] = activeOutputStations.Any() ? UpperBoundHelper.CalcUBItemThroughputRate(instance, activeOutputStations.Average(s => s.StatItemPileOn)) : 0;
+        _entryValues[FootPrintEntry.ItemThroughputRateScore] = (double)_entryValues[FootPrintEntry.ItemThroughputRateUB] == 0 ? 0 : (double)_entryValues[FootPrintEntry.ItemThroughputRate] / (double)_entryValues[FootPrintEntry.ItemThroughputRateUB];
         _entryValues[FootPrintEntry.LineThroughputRate] = instance.StatOverallLinesHandled / TimeSpan.FromSeconds(instance.SettingConfig.SimulationDuration).TotalHours;
         _entryValues[FootPrintEntry.OrderThroughputRate] = instance.StatOverallOrdersHandled / TimeSpan.FromSeconds(instance.SettingConfig.SimulationDuration).TotalHours;
         // Order turnover time
@@ -1627,10 +1629,11 @@ public class FootprintDatapoint
         _entryValues[FootPrintEntry.LateOrdersRate] = instance._statOrderLatenessTimes.Count(l => l > 0) / TimeSpan.FromSeconds(instance.SettingConfig.SimulationDuration).TotalHours;
         _entryValues[FootPrintEntry.OnTimeOrdersRate] = instance._statOrderLatenessTimes.Count(l => l <= 0) / TimeSpan.FromSeconds(instance.SettingConfig.SimulationDuration).TotalHours;
         // Item pile-on
-        _entryValues[FootPrintEntry.ItemPileOneAvg] = instance.OutputStations.Count == 0 ? 0 : instance.OutputStations.Where(s => s.StatNumItemsPicked > 0).Average(s => s.StatItemPileOn);
-        _entryValues[FootPrintEntry.ItemPileOneMed] = instance.OutputStations.Count == 0 ? 0 : StatisticsHelper.GetMedian(instance.OutputStations.Where(s => s.StatNumItemsPicked > 0).Select(s => s.StatItemPileOn));
-        _entryValues[FootPrintEntry.ItemPileOneLQ] = instance.OutputStations.Count == 0 ? 0 : StatisticsHelper.GetLowerQuartile(instance.OutputStations.Where(s => s.StatNumItemsPicked > 0).Select(s => s.StatItemPileOn));
-        _entryValues[FootPrintEntry.ItemPileOneUQ] = instance.OutputStations.Count == 0 ? 0 : StatisticsHelper.GetUpperQuartile(instance.OutputStations.Where(s => s.StatNumItemsPicked > 0).Select(s => s.StatItemPileOn));
+        var pickedOutputStations = instance.OutputStations.Where(s => s.StatNumItemsPicked > 0).ToList();
+        _entryValues[FootPrintEntry.ItemPileOneAvg] = pickedOutputStations.Count == 0 ? 0 : pickedOutputStations.Average(s => s.StatItemPileOn);
+        _entryValues[FootPrintEntry.ItemPileOneMed] = pickedOutputStations.Count == 0 ? 0 : StatisticsHelper.GetMedian(pickedOutputStations.Select(s => s.StatItemPileOn));
+        _entryValues[FootPrintEntry.ItemPileOneLQ] = pickedOutputStations.Count == 0 ? 0 : StatisticsHelper.GetLowerQuartile(pickedOutputStations.Select(s => s.StatItemPileOn));
+        _entryValues[FootPrintEntry.ItemPileOneUQ] = pickedOutputStations.Count == 0 ? 0 : StatisticsHelper.GetUpperQuartile(pickedOutputStations.Select(s => s.StatItemPileOn));
         // Injected item pile-on
         _entryValues[FootPrintEntry.InjectedItemPileOneAvg] = instance.OutputStations.Count == 0 ? 0 : instance.OutputStations.Average(s => s.StatInjectedItemPileOn);
         _entryValues[FootPrintEntry.InjectedItemPileOneMed] = instance.OutputStations.Count == 0 ? 0 : StatisticsHelper.GetMedian(instance.OutputStations.Select(s => s.StatInjectedItemPileOn));
