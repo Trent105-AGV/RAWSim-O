@@ -137,17 +137,28 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
                     var instance = instanceProvider.GetCurrentInstance();
                     if (instance != null)
                     {
+                        // Send a single batch event with all robots and pods
+                        var robots = new List<object>();
                         foreach (var bot in instance.Bots)
                         {
-                            var payload = new
+                            robots.Add(new
                             {
                                 robot_id = bot.ID,
-                                destination = new[] { bot.GetCurrentTargetX(), bot.GetCurrentTargetY(), 0.0 },
-                                position = bot.LastConfirmedPosition ?? new[] { bot.X, bot.Y, bot.Orientation },
-                                forces = bot.TargetForce ?? new[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }
-                            };
-                            await Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(payload)}\n\n");
+                                destination = new[] { bot.GetCurrentTargetX(), bot.GetCurrentTargetY() },
+                                position = bot.LastConfirmedPosition ?? new[] { bot.X, bot.Y, bot.Orientation }
+                            });
                         }
+                        var pods = new List<object>();
+                        foreach (var pod in instance.Pods)
+                        {
+                            pods.Add(new
+                            {
+                                pod_id = pod.ID,
+                                position = new[] { pod.X, pod.Y, pod.Orientation }
+                            });
+                        }
+                        var payload = new { robots, pods };
+                        await Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(payload)}\n\n");
                     }
                 }
                 else
@@ -171,22 +182,26 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
                 {
                     lock(instance)
                     {
-                        var bot = instance.Bots.FirstOrDefault(b => b.ID == pose.robot_id);
-                        if (bot != null && pose.position != null && pose.position.Length >= 2)
+                        // Handle robot pose update
+                        if (pose.robot_id >= 0)
                         {
-                            double newO = pose.rotation != null && pose.rotation.Length >= 4 ? pose.rotation[3] : bot.Orientation;
-                            var tier = instance.Compound.BotCurrentTier.ContainsKey(bot) ? instance.Compound.BotCurrentTier[bot] : null;
-                            if (tier != null)
+                            var bot = instance.Bots.FirstOrDefault(b => b.ID == pose.robot_id);
+                            if (bot != null && pose.position != null && pose.position.Length >= 2)
                             {
-                                tier.MoveBotOverride(bot, pose.position[0], pose.position[1]);
-                                bot.SetPhysicalOrientation(newO);
+                                double newO = pose.rotation != null && pose.rotation.Length >= 4 ? pose.rotation[3] : bot.Orientation;
+                                var tier = instance.Compound.BotCurrentTier.ContainsKey(bot) ? instance.Compound.BotCurrentTier[bot] : null;
+                                if (tier != null)
+                                {
+                                    tier.MoveBotOverride(bot, pose.position[0], pose.position[1]);
+                                    bot.SetPhysicalOrientation(newO);
+                                }
+                                else
+                                {
+                                    bot.SetPhysicalState(pose.position[0], pose.position[1], newO);
+                                }
+                                bot.LastConfirmedPosition = new[] { bot.X, bot.Y, bot.Orientation };
+                                bot.LastPhysicalUpdateTime = DateTime.UtcNow;
                             }
-                            else
-                            {
-                                bot.SetPhysicalState(pose.position[0], pose.position[1], newO);
-                            }
-                            bot.LastConfirmedPosition = new[] { bot.X, bot.Y, bot.Orientation };
-                            bot.LastPhysicalUpdateTime = DateTime.UtcNow;
                         }
                     }
                 }
