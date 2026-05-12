@@ -26,9 +26,9 @@
 
 | 文件 | 说明 |
 |------|------|
-| `1-3-3-15-64.xinst` | 基础实例：1层、15台AGV、3补货站、3拣选站、64料架 |
+| `BasicInstance.xlayo` | 基础布局：16台AGV、2补货站、2拣选站 |
 | `steadysetting.xsett` | 稳态仿真设置，OrderCount=200，SimulationDuration=1000000 |
-| `HardwareTestFAR.xconf` | FAR路径规划控制器配置 |
+| `BasicInstance.xconf` | 基础控制器配置（非Gurobi，与后端测试一致） |
 | `Resources.zip` | 仿真资源文件 |
 
 **测试专用配置** (`test_sim_config/`):
@@ -37,16 +37,18 @@
 |------|------|
 | `Repo300AGV.xlayo` | 300台AGV布局文件（HighwayHallway aisle，4补货站+4拣选站） |
 | `TestScale-300AGV-5000Task.xsett` | 300AGV+5000任务综合测试设置，OrderCount=5000 |
-| `TestScale-3000Task.xsett` | 3000+任务专用设置（配合基础实例），OrderCount=5000 |
-| `SimpleItem-Fill-200-200-172800.xsett` | 200x200 SKU长时仿真设置 |
+| `TestScale-3000Task.xsett` | 3000+任务专用设置（配合基础布局），OrderCount=5000 |
+| `SimpleItem-Fill-200-200-172800.xsett` | 200x200 SKU长时仿真设置，用于scale-300配置 |
+| `Mu-1000.xgenc` | 1000 SKU物料生成配置（配合scale-3000使用） |
 
 ### 2.2 测试配置组合
 
-| 配置名 | Instance | Setting | Control | 说明 |
-|--------|----------|---------|---------|------|
-| Basic | `1-3-3-15-64.xinst` | `steadysetting.xsett` | `HardwareTestFAR.xconf` | 15台AGV基础功能测试 |
-| Scale-200+ | `Repo300AGV.xlayo` | `TestScale-300AGV-5000Task.xsett` | `HardwareTestFAR.xconf` | 300台AGV + 5000任务综合测试 |
-| Scale-3000+ | `1-3-3-15-64.xinst` | `TestScale-3000Task.xsett` | `HardwareTestFAR.xconf` | 15台AGV + 5000任务（验证任务规模） |
+| 配置名 | Layout | Setting | Control | 说明 |
+|--------|--------|---------|---------|------|
+| Basic | `BasicInstance.xlayo` | `steadysetting.xsett` | `BasicInstance.xconf` | 16台AGV + 200任务基础功能测试 |
+| Scale-300 | `Repo300AGV.xlayo` | `SimpleItem-Fill-200-200-172800.xsett` | `BasicInstance.xconf` | 300台AGV + 200任务（AGV扩展，无大量任务） |
+| Scale-200 | `Repo300AGV.xlayo` | `TestScale-300AGV-5000Task.xsett` | `BasicInstance.xconf` | 300台AGV + 5000任务综合测试 |
+| Scale-3000 | `BasicInstance.xlayo` | `TestScale-3000Task.xsett` | `BasicInstance.xconf` | 16台AGV + 5000订单（验证任务规模） |
 
 ### 2.3 性能测试参数
 
@@ -324,7 +326,7 @@
 
 ### 4.1 测试模式功能
 
-- 一键加载测试配置（Basic / Scale-200+ / Scale-3000+）
+- 一键加载测试配置（Basic / Scale-300 / Scale-200 / Scale-3000）
 - 20项测试用例表格，实时显示 PASS/FAIL/RUNNING/PENDING 状态
 - 实时测试指标面板（AGV数量、任务统计、健康状态、响应时间等）
 - 生成测试报告（下载为文本文件）
@@ -358,8 +360,8 @@
 ### 5.1 AGV规模测试
 
 ```text
-配置: Scale-200+ (Repo300AGV.xlayo + TestScale-300AGV-5000Task.xsett + HardwareTestFAR.xconf)
-一键加载: Test Mode → "Load >200AGV & >3000Task"
+配置: Scale-300 (Repo300AGV.xlayo + SimpleItem-Fill-200-200-172800.xsett + BasicInstance.xconf)
+一键加载: Test Mode → "Load 300AGV"
 验证: agvCount >= 200（实际300台），仿真正常运行无错误
 后端测试: PerformanceTests.Scale200AGV_BotCountExceeds200
          PerformanceTests.Scale200AGV_SimulationCompletes
@@ -368,7 +370,7 @@
 ### 5.2 任务规模测试
 
 ```text
-配置: Scale-3000+ (1-3-3-15-64.xinst + TestScale-3000Task.xsett + HardwareTestFAR.xconf)
+配置: Scale-3000 (BasicInstance.xlayo + TestScale-3000Task.xsett + BasicInstance.xconf)
 一键加载: Test Mode → "Load >3000Task"
 验证: Pending Order Count >= 3000，Fill模式自动填充OrderCount=5000的任务池
 后端测试: PerformanceTests.Scale3000Task_OrderCountExceeds3000
@@ -378,7 +380,7 @@
 ### 5.3 综合规模测试 (>200 AGV + >3000 任务)
 
 ```text
-配置: Scale-200+ (Repo300AGV.xlayo + TestScale-300AGV-5000Task.xsett + HardwareTestFAR.xconf)
+配置: Scale-200 (Repo300AGV.xlayo + TestScale-300AGV-5000Task.xsett + BasicInstance.xconf)
 一键加载: Test Mode → "Load >200AGV & >3000Task"
 验证:
   - AGV 接入数量 >= 200 (实际300台)
