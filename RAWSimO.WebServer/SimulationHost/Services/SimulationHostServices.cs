@@ -6,6 +6,7 @@ using MagicOnion;
 using MagicOnion.Server;
 using Microsoft.AspNetCore.SignalR;
 using RAWSimO.Core;
+using RAWSimO.Core.Bots;
 using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
 using RAWSimO.Core.Randomization;
@@ -1033,11 +1034,74 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             PendingOrderCount: pendingCount,
             OpenOrderCount: openCount,
             CompletedOrderCount: completedCount,
+            TotalOrderCount: pendingCount + openCount + completedCount,
             Bots: bots,
             Pods: pods,
             InputStations: inputStations,
             OutputStations: outputStations,
             Waypoints: waypoints);
+    }
+
+    public TestMetadataDto GetTestMetadata()
+    {
+        lock (_gate)
+        {
+            if (_instance is null || _runTask is not { IsCompleted: false })
+                return TestMetadataDto.Empty();
+
+            var instance = _instance;
+            var tier = instance.Compound?.Tiers?.Count > 0
+                ? instance.Compound.Tiers[Math.Clamp(_currentRenderTierIndex, 0, instance.Compound.Tiers.Count - 1)]
+                : null;
+
+            var bots = tier?.CurrentBots ?? [];
+            var botStates = bots.Select(b =>
+            {
+                var stateType = b.StatLastState;
+                var isIdle = stateType == BotStateType.Rest;
+                var hasPod = b.Pod is not null;
+                var taskType = b.CurrentTask?.Type.ToString();
+                return new BotStateInfo(
+                    Id: b.ID,
+                    X: b.X,
+                    Y: b.Y,
+                    Radius: b.Radius,
+                    Orientation: b.Orientation,
+                    State: stateType.ToString(),
+                    IsIdle: isIdle,
+                    HasPod: hasPod,
+                    TaskType: taskType
+                );
+            }).ToArray();
+
+            var idleCount = botStates.Count(b => b.IsIdle);
+            var busyCount = botStates.Length - idleCount;
+
+            var pendingCount = instance.ItemManager?.GetInfoPendingOrderCount() ?? 0;
+            var openCount = instance.ItemManager?.GetInfoOpenOrders()?.Count() ?? 0;
+            var completedCount = instance.ItemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
+
+            var podCount = tier != null ? tier.CurrentPods.Count() : 0;
+            var waypointCount = instance.Waypoints.Count(w => ReferenceEquals(w.Tier, tier));
+
+            return new TestMetadataDto(
+                SimulationRunning: true,
+                SimTime: instance.Controller?.CurrentTime ?? 0,
+                AgvCount: bots.Count(),
+                InputStationCount: instance.InputStations.Count,
+                OutputStationCount: instance.OutputStations.Count,
+                PodCount: podCount,
+                WaypointCount: waypointCount,
+                PendingOrderCount: pendingCount,
+                OpenOrderCount: openCount,
+                CompletedOrderCount: completedCount,
+                IdleBotCount: idleCount,
+                BusyBotCount: busyCount,
+                BotStates: botStates,
+                Error: _lastError?.ToString(),
+                HealthOk: _lastError is null
+            );
+        }
     }
 
     private static string BuildItemDescriptionText(ItemDescription itemDescription)

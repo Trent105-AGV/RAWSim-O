@@ -9,7 +9,7 @@ namespace RAWSimO.WebServer.SimulationHost.Controllers;
 
 [ApiController]
 [Route("simulation/[action]")]
-public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService)
+public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService, SimulationHostServices concreteService)
 	: ControllerBase
 {
 	[HttpGet]
@@ -114,5 +114,12 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 	public async Task StreamSimulationData()
 	{
 		await streamService.StreamSimulationDataSse(Response, HttpContext.RequestAborted);
+	}
+
+	[HttpGet]
+	[AllowAnonymous]
+	public IActionResult GetTestMetadata()
+	{
+		return Ok(concreteService.GetTestMetadata());
 	}
 }
