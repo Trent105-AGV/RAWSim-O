@@ -651,9 +651,11 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             instance = _instance;
         }
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var now = instance.Controller.CurrentTime;
+            var highPriority = request.HighPriority;
             var preparedOrders = new List<(Order Order, int? TargetOutputStationId)>(request.Tasks.Count);
 
             foreach (var task in request.Tasks)
@@ -685,7 +687,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
             var itemManager = instance.ItemManager;
             var appended = itemManager?.AppendOrders(preparedOrders.Select(t => t.Order)) ?? 0;
+            var assignedCount = 0;
 
+            // Assign to specific stations if TargetOutputStationId is given
             foreach (var entry in preparedOrders)
             {
                 if (!entry.TargetOutputStationId.HasValue)
@@ -702,9 +706,46 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 {
                     itemManager?.NewOrderAssignedToStation(station, entry.Order);
                     instance.ResourceManager?.NewOrderAssignedToStation(entry.Order, station);
+                    assignedCount++;
                 }
             }
 
+            // High priority: immediately assign remaining unassigned orders to available stations
+            if (highPriority)
+            {
+                var alreadyAssigned = preparedOrders
+                    .Where(t => t.TargetOutputStationId.HasValue)
+                    .Select(t => t.Order)
+                    .ToHashSet();
+
+                var unassigned = preparedOrders
+                    .Where(t => !alreadyAssigned.Contains(t.Order))
+                    .Select(t => t.Order)
+                    .ToList();
+
+                foreach (var order in unassigned)
+                {
+                    var bestStation = instance.OutputStations
+                        .Where(s => s.GetInfoAssignedOrders() < s.Capacity)
+                        .OrderBy(s => s.GetInfoAssignedOrders())
+                        .FirstOrDefault();
+
+                    if (bestStation == null)
+                        continue;
+
+                    itemManager?.TakeAvailableOrder(order);
+                    instance.ResourceManager?.NewOrderQueuedToStation(order, bestStation);
+
+                    if (bestStation.AssignOrder(order))
+                    {
+                        itemManager?.NewOrderAssignedToStation(bestStation, order);
+                        instance.ResourceManager?.NewOrderAssignedToStation(order, bestStation);
+                        assignedCount++;
+                    }
+                }
+            }
+
+            sw.Stop();
             var pendingCount = itemManager?.GetInfoPendingOrderCount() ?? 0;
             var openCount = itemManager?.GetInfoOpenOrders()?.Count() ?? 0;
             var completedCount = itemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
@@ -715,11 +756,15 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 pendingCount,
                 openCount,
                 completedCount,
-                appended > 0 ? null : "Failed to append tasks"));
+                appended > 0 ? null : "Failed to append tasks",
+                assignedCount,
+                sw.Elapsed.TotalMilliseconds));
         }
         catch (Exception ex)
         {
-            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, Error: ex.ToString()));
+            sw.Stop();
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
+                Error: ex.ToString(), ProcessingTimeMs: sw.Elapsed.TotalMilliseconds));
         }
     }
 

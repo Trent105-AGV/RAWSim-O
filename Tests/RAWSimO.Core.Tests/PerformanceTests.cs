@@ -87,8 +87,8 @@ public class PerformanceTests
     }
 
     /// <summary>
-    /// TC-16: With 3000+ tasks, average task response time should be under 3 seconds.
-    /// Uses a small instance with high OrderCount to generate many orders quickly.
+    /// TC-16: With 3000+ pending tasks, average task response time should be under 3 seconds.
+    /// Uses a small instance with high OrderCount to generate a large pending pool.
     /// </summary>
     [Fact]
     public void Scale3000Task_OrderCountExceeds3000()
@@ -106,10 +106,10 @@ public class PerformanceTests
         var openOrders = instance.ItemManager.GetInfoOpenOrders().Count();
         var totalOrders = pendingOrders + openOrders + completedOrders;
 
-        _output.WriteLine($"Total orders: {totalOrders} (pending={pendingOrders}, open={openOrders}, completed={completedOrders})");
+        _output.WriteLine($"Pending: {pendingOrders}, Open: {openOrders}, Completed: {completedOrders}, Total: {totalOrders}");
 
-        Assert.True(totalOrders >= 3000,
-            $"Expected total orders >= 3000, got {totalOrders}");
+        Assert.True(pendingOrders >= 3000,
+            $"Expected pending orders >= 3000, got {pendingOrders}");
     }
 
     /// <summary>

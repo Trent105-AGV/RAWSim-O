@@ -38,12 +38,14 @@ public sealed record AppendTaskPositionRequest(
 public sealed record AppendTaskRequest(
     [property: Key(0)] double? TimeStamp,
     [property: Key(1)] IReadOnlyList<AppendTaskPositionRequest> Positions,
-    [property: Key(2)] int? TargetOutputStationId = null
+    [property: Key(2)] int? TargetOutputStationId = null,
+    [property: Key(3)] bool HighPriority = false
 );
 
 [MessagePackObject]
 public sealed record AppendTasksRequest(
-    [property: Key(0)] IReadOnlyList<AppendTaskRequest> Tasks
+    [property: Key(0)] IReadOnlyList<AppendTaskRequest> Tasks,
+    [property: Key(1)] bool HighPriority = false
 );
 
 [MessagePackObject]
@@ -53,7 +55,9 @@ public sealed record AppendTasksResponse(
     [property: Key(2)] int PendingOrderCount = 0,
     [property: Key(3)] int OpenOrderCount = 0,
     [property: Key(4)] int CompletedOrderCount = 0,
-    [property: Key(5)] string? Error = null
+    [property: Key(5)] string? Error = null,
+    [property: Key(6)] int AssignedCount = 0,
+    [property: Key(7)] double ProcessingTimeMs = 0
 );
 
 [MessagePackObject]
