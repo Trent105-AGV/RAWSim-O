@@ -443,29 +443,37 @@ public class ResourceManager : IUpdateable
     {
         // Manage overall list of available requests
         _availableExtractRequests.Remove(request);
-        _availableExtractRequestsPerOrder[request.Order].Remove(request);
+        if (_availableExtractRequestsPerOrder.TryGetValue(request.Order, out var orderRequests))
+            orderRequests.Remove(request);
 
         // Manage requests available per station
         if (request.Station != null)
         {
-            _availableExtractRequestsPerStation[request.Station].Remove(request);
-            request.Station.StatCurrentlyOpenRequests = _availableExtractRequestsPerStation[request.Station].Count;
-            // Update demand
-            _assignedDemand[request.Item]--;
+            if (_availableExtractRequestsPerStation.TryGetValue(request.Station, out var stationRequests))
+            {
+                stationRequests.Remove(request);
+                request.Station.StatCurrentlyOpenRequests = stationRequests.Count;
+            }
+            if (_assignedDemand.ContainsKey(request.Item))
+                _assignedDemand[request.Item]--;
         }
         // Remove from queue of the station
-        else if (_stationQueuedPerExtractRequest.ContainsKey(request))
+        else if (_stationQueuedPerExtractRequest.TryGetValue(request, out var queuedStation))
         {
-            _availableExtractRequestsPerStationQueue[_stationQueuedPerExtractRequest[request]].Remove(request);
-            _stationQueuedPerExtractRequest[request].StatCurrentlyOpenQueuedRequests = _availableExtractRequestsPerStationQueue[_stationQueuedPerExtractRequest[request]].Count;
-            // Update demand
-            _queuedDemand[request.Item]--;
+            if (_availableExtractRequestsPerStationQueue.TryGetValue(queuedStation, out var queueRequests))
+            {
+                queueRequests.Remove(request);
+                queuedStation.StatCurrentlyOpenQueuedRequests = queueRequests.Count;
+            }
+            _stationQueuedPerExtractRequest.Remove(request);
+            if (_queuedDemand.ContainsKey(request.Item))
+                _queuedDemand[request.Item]--;
         }
         // Remove from overall backlog
         else
         {
-            // Update demand
-            _backlogDemand[request.Item]--;
+            if (_backlogDemand.ContainsKey(request.Item))
+                _backlogDemand[request.Item]--;
         }
     }
 
@@ -479,28 +487,34 @@ public class ResourceManager : IUpdateable
         request.ReInsert();
         // Manage overall list of available requests
         _availableExtractRequests.Add(request);
-        _availableExtractRequestsPerOrder[request.Order].Add(request);
+        if (_availableExtractRequestsPerOrder.TryGetValue(request.Order, out var orderRequests))
+            orderRequests.Add(request);
         // Manage requests available per station
         if (request.Station != null)
         {
-            _availableExtractRequestsPerStation[request.Station].Add(request);
-            request.Station.StatCurrentlyOpenRequests = _availableExtractRequestsPerStation[request.Station].Count;
-            // Update demand
-            _assignedDemand[request.Item]++;
+            if (_availableExtractRequestsPerStation.TryGetValue(request.Station, out var stationRequests))
+            {
+                stationRequests.Add(request);
+                request.Station.StatCurrentlyOpenRequests = stationRequests.Count;
+            }
+            if (_assignedDemand.ContainsKey(request.Item))
+                _assignedDemand[request.Item]++;
         }
-        else if (_stationQueuedPerExtractRequest.ContainsKey(request))
-            // Re-add to queue of the station
+        else if (_stationQueuedPerExtractRequest.TryGetValue(request, out var queuedStation))
         {
-            _availableExtractRequestsPerStationQueue[_stationQueuedPerExtractRequest[request]].Add(request);
-            _stationQueuedPerExtractRequest[request].StatCurrentlyOpenQueuedRequests = _availableExtractRequestsPerStationQueue[_stationQueuedPerExtractRequest[request]].Count;
-            // Update demand
-            _queuedDemand[request.Item]++;
+            if (_availableExtractRequestsPerStationQueue.TryGetValue(queuedStation, out var queueRequests))
+            {
+                queueRequests.Add(request);
+                queuedStation.StatCurrentlyOpenQueuedRequests = queueRequests.Count;
+            }
+            if (_queuedDemand.ContainsKey(request.Item))
+                _queuedDemand[request.Item]++;
         }
         // Re-add to overall backlog
         else
         {
-            // Update demand
-            _backlogDemand[request.Item]++;
+            if (_backlogDemand.ContainsKey(request.Item))
+                _backlogDemand[request.Item]++;
         }
     }
 

@@ -699,15 +699,19 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 if (station == null)
                     continue;
 
-                itemManager?.TakeAvailableOrder(entry.Order);
-                instance.ResourceManager?.NewOrderQueuedToStation(entry.Order, station);
-
-                if (station.AssignOrder(entry.Order))
+                try
                 {
-                    itemManager?.NewOrderAssignedToStation(station, entry.Order);
-                    instance.ResourceManager?.NewOrderAssignedToStation(entry.Order, station);
-                    assignedCount++;
+                    itemManager?.TakeAvailableOrder(entry.Order);
+                    instance.ResourceManager?.NewOrderQueuedToStation(entry.Order, station);
+
+                    if (station.AssignOrder(entry.Order))
+                    {
+                        itemManager?.NewOrderAssignedToStation(station, entry.Order);
+                        instance.ResourceManager?.NewOrderAssignedToStation(entry.Order, station);
+                        assignedCount++;
+                    }
                 }
+                catch (KeyNotFoundException) { /* race with simulation loop */ }
             }
 
             // High priority: immediately assign remaining unassigned orders to available stations
@@ -733,15 +737,19 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                     if (bestStation == null)
                         continue;
 
-                    itemManager?.TakeAvailableOrder(order);
-                    instance.ResourceManager?.NewOrderQueuedToStation(order, bestStation);
-
-                    if (bestStation.AssignOrder(order))
+                    try
                     {
-                        itemManager?.NewOrderAssignedToStation(bestStation, order);
-                        instance.ResourceManager?.NewOrderAssignedToStation(order, bestStation);
-                        assignedCount++;
+                        itemManager?.TakeAvailableOrder(order);
+                        instance.ResourceManager?.NewOrderQueuedToStation(order, bestStation);
+
+                        if (bestStation.AssignOrder(order))
+                        {
+                            itemManager?.NewOrderAssignedToStation(bestStation, order);
+                            instance.ResourceManager?.NewOrderAssignedToStation(order, bestStation);
+                            assignedCount++;
+                        }
                     }
+                    catch (KeyNotFoundException) { /* race with simulation loop */ }
                 }
             }
 
