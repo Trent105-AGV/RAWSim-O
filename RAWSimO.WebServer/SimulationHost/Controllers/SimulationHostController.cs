@@ -64,6 +64,13 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 
 	[HttpPost]
 	[AllowAnonymous]
+	public IActionResult SetSpeed([FromBody] SetSpeedRequest request)
+	{
+		return Ok(concreteService.SetSpeed(request));
+	}
+
+	[HttpPost]
+	[AllowAnonymous]
 	public async Task<IActionResult> GetLatestFrame([FromBody] RenderFrameRequest request)
 	{
 		return Ok(await hostService.GetLatestFrame(request));

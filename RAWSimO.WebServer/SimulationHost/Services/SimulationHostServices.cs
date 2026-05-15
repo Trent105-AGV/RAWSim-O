@@ -61,6 +61,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
     private volatile bool _isPaused;
 
+    private volatile int _speedMultiplier = 1;
+
     private volatile RenderFrameDto? _latestFrame;
 
     private int _preferredViewportWidthPx = 800;
@@ -636,6 +638,15 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         return UnaryResult.FromResult(true);
     }
 
+    public SetSpeedResponse SetSpeed(SetSpeedRequest request)
+    {
+        if (request.SpeedMultiplier < 1 || request.SpeedMultiplier > 400)
+            return new SetSpeedResponse(false, _speedMultiplier, "SpeedMultiplier must be between 1 and 400");
+
+        _speedMultiplier = request.SpeedMultiplier;
+        return new SetSpeedResponse(true, _speedMultiplier, null);
+    }
+
     public UnaryResult<AppendTasksResponse> AppendTasks(AppendTasksRequest request)
     {
         if (request.Tasks.Count == 0)
@@ -880,7 +891,6 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         try
         {
             const double stepDt = 0.05;
-            const int frameEverySteps = 1;
             var steps = 0;
             var endTime = instance.SettingConfig.SimulationWarmupTime + instance.SettingConfig.SimulationDuration;
 
@@ -892,23 +902,26 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                     continue;
                 }
 
-                instance.Controller.Update(stepDt);
-                steps++;
-
-                if (steps % frameEverySteps == 0)
+                int currentSpeed = _speedMultiplier;
+                for (int i = 0; i < currentSpeed; i++)
                 {
-                    RenderOptions runOptions;
-                    int runTierIndex;
-                    lock (_gate)
-                    {
-                        runOptions = CloneRenderOptions(_currentRenderOptions);
-                        runTierIndex = _currentRenderTierIndex;
-                    }
-
-                    var frame = BuildFrame(instance, _preferredViewportWidthPx, _preferredViewportHeightPx,
-                        tierIndex: runTierIndex, options: runOptions);
-                    _latestFrame = frame;
+                    if (ct.IsCancellationRequested || instance.Controller.CurrentTime >= endTime)
+                        break;
+                    instance.Controller.Update(stepDt);
+                    steps++;
                 }
+
+                RenderOptions runOptions;
+                int runTierIndex;
+                lock (_gate)
+                {
+                    runOptions = CloneRenderOptions(_currentRenderOptions);
+                    runTierIndex = _currentRenderTierIndex;
+                }
+
+                var frame = BuildFrame(instance, _preferredViewportWidthPx, _preferredViewportHeightPx,
+                    tierIndex: runTierIndex, options: runOptions);
+                _latestFrame = frame;
 
                 Thread.Sleep(10);
             }

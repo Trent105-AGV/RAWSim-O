@@ -145,4 +145,16 @@ public sealed record StartResponse(
     [property: Key(1)] string? Error = null
 );
 
+[MessagePackObject]
+public sealed record SetSpeedRequest(
+    [property: Key(0)] int SpeedMultiplier
+);
+
+[MessagePackObject]
+public sealed record SetSpeedResponse(
+    [property: Key(0)] bool Accepted,
+    [property: Key(1)] int SpeedMultiplier,
+    [property: Key(2)] string? Error = null
+);
+
 #endregion
