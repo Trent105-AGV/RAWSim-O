@@ -122,4 +122,11 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
 	{
 		return Ok(concreteService.GetTestMetadata());
 	}
+
+	[HttpGet]
+	[AllowAnonymous]
+	public async Task StreamTestMetadata()
+	{
+		await concreteService.StreamTestMetadataSse(Response, HttpContext.RequestAborted);
+	}
 }

@@ -1017,6 +1017,30 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         }
     }
 
+    public async Task StreamTestMetadataSse(HttpResponse response, CancellationToken ct)
+    {
+        response.Headers.CacheControl = "no-cache";
+        response.Headers.Connection = "keep-alive";
+        response.ContentType = "text/event-stream";
+
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                var metadata = GetTestMetadata();
+                var json = JsonSerializer.Serialize(metadata, jsonOptions);
+                var bytes = Encoding.UTF8.GetBytes($"data: {json}\n\n");
+                await response.Body.WriteAsync(bytes, ct);
+                await response.Body.FlushAsync(ct);
+            }
+            catch (OperationCanceledException) { break; }
+
+            await Task.Delay(500, ct);
+        }
+    }
+
     private static int SanitizeViewportDimension(int value, int fallback)
     {
         if (value <= 0)
@@ -1133,6 +1157,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             var pendingCount = instance.ItemManager?.GetInfoPendingOrderCount() ?? 0;
             var openCount = instance.ItemManager?.GetInfoOpenOrders()?.Count() ?? 0;
             var completedCount = instance.ItemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
+            var completedBundleCount = instance.ItemManager?.GetInfoCompletedBundleCount() ?? 0;
 
             var podCount = tier != null ? tier.CurrentPods.Count() : 0;
             var waypointCount = instance.Waypoints.Count(w => ReferenceEquals(w.Tier, tier));
@@ -1148,6 +1173,7 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 PendingOrderCount: pendingCount,
                 OpenOrderCount: openCount,
                 CompletedOrderCount: completedCount,
+                CompletedBundleCount: completedBundleCount,
                 IdleBotCount: idleCount,
                 BusyBotCount: busyCount,
                 BotStates: botStates,
