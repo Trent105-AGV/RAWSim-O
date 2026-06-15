@@ -6,6 +6,7 @@ using MagicOnion;
 using MagicOnion.Server;
 using Microsoft.AspNetCore.SignalR;
 using RAWSimO.Core;
+using RAWSimO.Core.Bots;
 using RAWSimO.Core.IO;
 using RAWSimO.Core.Items;
 using RAWSimO.Core.Randomization;
@@ -67,6 +68,8 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     private CurrentRunInputs? _currentRunInputs;
 
     private volatile bool _isPaused;
+
+    private volatile int _speedMultiplier = 1;
 
     private volatile RenderFrameDto? _latestFrame;
 
@@ -643,6 +646,15 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         return UnaryResult.FromResult(true);
     }
 
+    public SetSpeedResponse SetSpeed(SetSpeedRequest request)
+    {
+        if (request.SpeedMultiplier < 1 || request.SpeedMultiplier > 400)
+            return new SetSpeedResponse(false, _speedMultiplier, "SpeedMultiplier must be between 1 and 400");
+
+        _speedMultiplier = request.SpeedMultiplier;
+        return new SetSpeedResponse(true, _speedMultiplier, null);
+    }
+
     public UnaryResult<AppendTasksResponse> AppendTasks(AppendTasksRequest request)
     {
         if (request.Tasks.Count == 0)
@@ -658,9 +670,11 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             instance = _instance;
         }
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var now = instance.Controller.CurrentTime;
+            var highPriority = request.HighPriority;
             var preparedOrders = new List<(Order Order, int? TargetOutputStationId)>(request.Tasks.Count);
 
             foreach (var task in request.Tasks)
@@ -692,7 +706,9 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
 
             var itemManager = instance.ItemManager;
             var appended = itemManager?.AppendOrders(preparedOrders.Select(t => t.Order)) ?? 0;
+            var assignedCount = 0;
 
+            // Assign to specific stations if TargetOutputStationId is given
             foreach (var entry in preparedOrders)
             {
                 if (!entry.TargetOutputStationId.HasValue)
@@ -702,16 +718,61 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 if (station == null)
                     continue;
 
-                itemManager?.TakeAvailableOrder(entry.Order);
-                instance.ResourceManager?.NewOrderQueuedToStation(entry.Order, station);
-
-                if (station.AssignOrder(entry.Order))
+                try
                 {
-                    itemManager?.NewOrderAssignedToStation(station, entry.Order);
-                    instance.ResourceManager?.NewOrderAssignedToStation(entry.Order, station);
+                    itemManager?.TakeAvailableOrder(entry.Order);
+                    instance.ResourceManager?.NewOrderQueuedToStation(entry.Order, station);
+
+                    if (station.AssignOrder(entry.Order))
+                    {
+                        itemManager?.NewOrderAssignedToStation(station, entry.Order);
+                        instance.ResourceManager?.NewOrderAssignedToStation(entry.Order, station);
+                        assignedCount++;
+                    }
+                }
+                catch (KeyNotFoundException) { /* race with simulation loop */ }
+            }
+
+            // High priority: immediately assign remaining unassigned orders to available stations
+            if (highPriority)
+            {
+                var alreadyAssigned = preparedOrders
+                    .Where(t => t.TargetOutputStationId.HasValue)
+                    .Select(t => t.Order)
+                    .ToHashSet();
+
+                var unassigned = preparedOrders
+                    .Where(t => !alreadyAssigned.Contains(t.Order))
+                    .Select(t => t.Order)
+                    .ToList();
+
+                foreach (var order in unassigned)
+                {
+                    var bestStation = instance.OutputStations
+                        .Where(s => s.GetInfoAssignedOrders() < s.Capacity)
+                        .OrderBy(s => s.GetInfoAssignedOrders())
+                        .FirstOrDefault();
+
+                    if (bestStation == null)
+                        continue;
+
+                    try
+                    {
+                        itemManager?.TakeAvailableOrder(order);
+                        instance.ResourceManager?.NewOrderQueuedToStation(order, bestStation);
+
+                        if (bestStation.AssignOrder(order))
+                        {
+                            itemManager?.NewOrderAssignedToStation(bestStation, order);
+                            instance.ResourceManager?.NewOrderAssignedToStation(order, bestStation);
+                            assignedCount++;
+                        }
+                    }
+                    catch (KeyNotFoundException) { /* race with simulation loop */ }
                 }
             }
 
+            sw.Stop();
             var pendingCount = itemManager?.GetInfoPendingOrderCount() ?? 0;
             var openCount = itemManager?.GetInfoOpenOrders()?.Count() ?? 0;
             var completedCount = itemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
@@ -722,11 +783,15 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                 pendingCount,
                 openCount,
                 completedCount,
-                appended > 0 ? null : "Failed to append tasks"));
+                appended > 0 ? null : "Failed to append tasks",
+                assignedCount,
+                sw.Elapsed.TotalMilliseconds));
         }
         catch (Exception ex)
         {
-            return UnaryResult.FromResult(new AppendTasksResponse(false, 0, Error: ex.ToString()));
+            sw.Stop();
+            return UnaryResult.FromResult(new AppendTasksResponse(false, 0,
+                Error: ex.ToString(), ProcessingTimeMs: sw.Elapsed.TotalMilliseconds));
         }
     }
 
@@ -834,7 +899,6 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         try
         {
             const double stepDt = 0.05;
-            const int frameEverySteps = 1;
             var steps = 0;
             var endTime = instance.SettingConfig.SimulationWarmupTime + instance.SettingConfig.SimulationDuration;
 
@@ -846,26 +910,29 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
                     continue;
                 }
 
-                lock (instance)
+                int currentSpeed = _speedMultiplier;
+                for (int i = 0; i < currentSpeed; i++)
                 {
-                    instance.Controller.Update(stepDt);
-                }
-                steps++;
-
-                if (steps % frameEverySteps == 0)
-                {
-                    RenderOptions runOptions;
-                    int runTierIndex;
-                    lock (_gate)
+                    if (ct.IsCancellationRequested || instance.Controller.CurrentTime >= endTime)
+                        break;
+                    lock (instance)
                     {
-                        runOptions = CloneRenderOptions(_currentRenderOptions);
-                        runTierIndex = _currentRenderTierIndex;
+                        instance.Controller.Update(stepDt);
                     }
-
-                    var frame = BuildFrame(instance, _preferredViewportWidthPx, _preferredViewportHeightPx,
-                        tierIndex: runTierIndex, options: runOptions);
-                    _latestFrame = frame;
+                    steps++;
                 }
+
+                RenderOptions runOptions;
+                int runTierIndex;
+                lock (_gate)
+                {
+                    runOptions = CloneRenderOptions(_currentRenderOptions);
+                    runTierIndex = _currentRenderTierIndex;
+                }
+
+                var frame = BuildFrame(instance, _preferredViewportWidthPx, _preferredViewportHeightPx,
+                    tierIndex: runTierIndex, options: runOptions);
+                _latestFrame = frame;
 
                 Thread.Sleep(10);
             }
@@ -974,6 +1041,30 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
         }
     }
 
+    public async Task StreamTestMetadataSse(HttpResponse response, CancellationToken ct)
+    {
+        response.Headers.CacheControl = "no-cache";
+        response.Headers.Connection = "keep-alive";
+        response.ContentType = "text/event-stream";
+
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                var metadata = GetTestMetadata();
+                var json = JsonSerializer.Serialize(metadata, jsonOptions);
+                var bytes = Encoding.UTF8.GetBytes($"data: {json}\n\n");
+                await response.Body.WriteAsync(bytes, ct);
+                await response.Body.FlushAsync(ct);
+            }
+            catch (OperationCanceledException) { break; }
+
+            await Task.Delay(500, ct);
+        }
+    }
+
     private static int SanitizeViewportDimension(int value, int fallback)
     {
         if (value <= 0)
@@ -1044,11 +1135,76 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             PendingOrderCount: pendingCount,
             OpenOrderCount: openCount,
             CompletedOrderCount: completedCount,
+            TotalOrderCount: pendingCount + openCount + completedCount,
             Bots: bots,
             Pods: pods,
             InputStations: inputStations,
             OutputStations: outputStations,
             Waypoints: waypoints);
+    }
+
+    public TestMetadataDto GetTestMetadata()
+    {
+        lock (_gate)
+        {
+            if (_instance is null || _runTask is not { IsCompleted: false })
+                return TestMetadataDto.Empty();
+
+            var instance = _instance;
+            var tier = instance.Compound?.Tiers?.Count > 0
+                ? instance.Compound.Tiers[Math.Clamp(_currentRenderTierIndex, 0, instance.Compound.Tiers.Count - 1)]
+                : null;
+
+            var bots = tier?.CurrentBots ?? [];
+            var botStates = bots.Select(b =>
+            {
+                var stateType = b.StatLastState;
+                var isIdle = stateType == BotStateType.Rest;
+                var hasPod = b.Pod is not null;
+                var taskType = b.CurrentTask?.Type.ToString();
+                return new BotStateInfo(
+                    Id: b.ID,
+                    X: b.X,
+                    Y: b.Y,
+                    Radius: b.Radius,
+                    Orientation: b.Orientation,
+                    State: stateType.ToString(),
+                    IsIdle: isIdle,
+                    HasPod: hasPod,
+                    TaskType: taskType
+                );
+            }).ToArray();
+
+            var idleCount = botStates.Count(b => b.IsIdle);
+            var busyCount = botStates.Length - idleCount;
+
+            var pendingCount = instance.ItemManager?.GetInfoPendingOrderCount() ?? 0;
+            var openCount = instance.ItemManager?.GetInfoOpenOrders()?.Count() ?? 0;
+            var completedCount = instance.ItemManager?.GetInfoCompletedOrders()?.Count() ?? 0;
+            var completedBundleCount = instance.ItemManager?.GetInfoCompletedBundleCount() ?? 0;
+
+            var podCount = tier != null ? tier.CurrentPods.Count() : 0;
+            var waypointCount = instance.Waypoints.Count(w => ReferenceEquals(w.Tier, tier));
+
+            return new TestMetadataDto(
+                SimulationRunning: true,
+                SimTime: instance.Controller?.CurrentTime ?? 0,
+                AgvCount: bots.Count(),
+                InputStationCount: instance.InputStations.Count,
+                OutputStationCount: instance.OutputStations.Count,
+                PodCount: podCount,
+                WaypointCount: waypointCount,
+                PendingOrderCount: pendingCount,
+                OpenOrderCount: openCount,
+                CompletedOrderCount: completedCount,
+                CompletedBundleCount: completedBundleCount,
+                IdleBotCount: idleCount,
+                BusyBotCount: busyCount,
+                BotStates: botStates,
+                Error: _lastError?.ToString(),
+                HealthOk: _lastError is null
+            );
+        }
     }
 
     private static string BuildItemDescriptionText(ItemDescription itemDescription)

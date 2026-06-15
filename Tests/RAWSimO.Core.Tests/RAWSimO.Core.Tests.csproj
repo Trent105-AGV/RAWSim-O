@@ -52,6 +52,22 @@
     <Content Include="Resources\BasicInstance.golden">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Remove="Resources\Scale200AGV.xlayo" />
+    <Content Include="Resources\Scale200AGV.xlayo">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Resources\Scale200AGV.xsett" />
+    <Content Include="Resources\Scale200AGV.xsett">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Resources\Scale200AGV.xconf" />
+    <Content Include="Resources\Scale200AGV.xconf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Resources\Scale3000Task.xsett" />
+    <Content Include="Resources\Scale3000Task.xsett">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

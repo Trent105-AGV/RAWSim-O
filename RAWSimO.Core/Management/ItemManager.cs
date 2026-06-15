@@ -1792,6 +1792,14 @@ public class ItemManager : IItemManagerInfo
     /// Gets an enumeration of the already completed orders.
     /// </summary>
     /// <returns>The orders already completed.</returns>
+    public int GetInfoCompletedBundleCount()
+    {
+        lock (_syncRoot)
+        {
+            return _completedBundles.Count;
+        }
+    }
+
     public IEnumerable<IOrderInfo> GetInfoCompletedOrders()
     {
         lock (_syncRoot)

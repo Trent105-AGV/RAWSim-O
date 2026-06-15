@@ -11,7 +11,7 @@ namespace RAWSimO.WebServer.SimulationHost.Controllers;
 
 [ApiController]
 [Route("simulation/[action]")]
-public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService, IInstanceProvider instanceProvider)
+public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService, IInstanceProvider instanceProvider, SimulationHostServices concreteService)
     : ControllerBase
 {
     [HttpGet]
@@ -286,4 +286,24 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
             return Ok();
         }
 
+    [HttpPost]
+    [AllowAnonymous]
+    public IActionResult SetSpeed([FromBody] SetSpeedRequest request)
+    {
+        return Ok(concreteService.SetSpeed(request));
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult GetTestMetadata()
+    {
+        return Ok(concreteService.GetTestMetadata());
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task StreamTestMetadata()
+    {
+        await concreteService.StreamTestMetadataSse(Response, HttpContext.RequestAborted);
+    }
 }
