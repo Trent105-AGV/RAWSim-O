@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RAWSimO.Core.Bots;
+using RAWSimO.Core.Control;
 using RAWSimO.Core.Waypoints;
 using RAWSimO.Rendering2D;
 using RAWSimO.WebServer.Shared.SimulationHost.Types;
@@ -11,7 +12,7 @@ namespace RAWSimO.WebServer.SimulationHost.Controllers;
 
 [ApiController]
 [Route("simulation/[action]")]
-public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService, IInstanceProvider instanceProvider, SimulationHostServices concreteService)
+public sealed class SimulationHostController(ISimulationHostService hostService, ISimulationStreamService streamService, IInstanceProvider instanceProvider, SimulationHostServices concreteService, ISimBackendOptions backendOptions)
     : ControllerBase
 {
     [HttpGet]
@@ -130,7 +131,7 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
         public async Task StreamPhysicalDataSse()
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
-            bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+            bool usePhysical = backendOptions.Backend == PhysicsBackend.External;
 
             while (!HttpContext.RequestAborted.IsCancellationRequested)
             {
@@ -216,7 +217,7 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
         [AllowAnonymous]
         public IActionResult UpdatePhysicalPose([FromBody] RobotPoseDto pose)
         {
-            bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+            bool usePhysical = backendOptions.Backend == PhysicsBackend.External;
             if (usePhysical)
             {
                 var instance = instanceProvider.GetCurrentInstance();
@@ -305,5 +306,28 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
     public async Task StreamTestMetadata()
     {
         await concreteService.StreamTestMetadataSse(Response, HttpContext.RequestAborted);
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult GetSimBackend()
+    {
+        // Query the active simulation data-source backend ("internal" or "external").
+        return Ok(new { backend = backendOptions.Backend.ToString().ToLowerInvariant() });
+    }
+
+    [HttpPost]
+    [AllowAnonymous]
+    public IActionResult SetSimBackend([FromQuery] string backend)
+    {
+        // Switch the simulation data-source backend at runtime: "internal" (pure RAWSim-O)
+        // or "external" (Isaac Lab physical sim). Resolved by both Core (BotNormal) and
+        // the physical SSE/pose endpoints via the shared SimBackendOptions.
+        if (Enum.TryParse<PhysicsBackend>(backend, ignoreCase: true, out var parsed))
+        {
+            backendOptions.Backend = parsed;
+            return Ok(new { backend = parsed.ToString().ToLowerInvariant() });
+        }
+        return BadRequest(new { error = $"Unknown backend '{backend}'. Use 'internal' or 'external'." });
     }
 }

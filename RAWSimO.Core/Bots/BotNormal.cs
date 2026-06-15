@@ -569,7 +569,7 @@ public class BotNormal : Bot
     /// <param name="currentTime">time stamp: now</param>
     public override void Update(double lastTime, double currentTime)
     {
-        bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+        bool usePhysical = SimBackendOptions.IsExternal;
         if (usePhysical)
         {
             // If we timed out (e.g. no update for 2 seconds), don't move
@@ -698,7 +698,7 @@ public class BotNormal : Bot
         //stop the pod (this should already be 0)
         XVelocity = YVelocity = 0;
 
-        bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+        bool usePhysical = SimBackendOptions.IsExternal;
         if (!usePhysical)
         {
             Orientation = Physics.getOrientationAfterTimeStep(_startOrientation, _endOrientation, currentTime - _waitUntil);
@@ -742,7 +742,7 @@ public class BotNormal : Bot
             NextWaypoint = null;
         }
 
-        bool usePhysical = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL")?.ToLower() == "true";
+        bool usePhysical = SimBackendOptions.IsExternal;
         if (!usePhysical)
         {
             // Try to make move. If can't ask move due to a collision, then stop
