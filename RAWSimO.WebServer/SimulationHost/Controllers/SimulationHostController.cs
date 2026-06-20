@@ -131,10 +131,16 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
         public async Task StreamPhysicalDataSse()
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
-            bool usePhysical = backendOptions.Backend == PhysicsBackend.External;
 
             while (!HttpContext.RequestAborted.IsCancellationRequested)
             {
+                // Re-read the backend mode EACH iteration so a runtime switch via
+                // SetSimBackend takes effect on this already-open connection. Previously this
+                // was captured once at connection open: a client (e.g. mir_isaaclab) that
+                // connected while RAWSim-O was in 'internal' mode stayed on comment frames
+                // forever even after the user switched to 'external', so the physical stream
+                // never delivered data and the robots froze on the backend switch.
+                bool usePhysical = backendOptions.Backend == PhysicsBackend.External;
                 if (usePhysical)
                 {
                     var instance = instanceProvider.GetCurrentInstance();
