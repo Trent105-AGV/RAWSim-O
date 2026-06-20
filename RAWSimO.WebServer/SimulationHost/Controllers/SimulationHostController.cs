@@ -223,74 +223,68 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
         [AllowAnonymous]
         public IActionResult UpdatePhysicalPose([FromBody] RobotPoseDto pose)
         {
-            bool usePhysical = backendOptions.Backend == PhysicsBackend.External;
-            if (usePhysical)
+            if (backendOptions.Backend != PhysicsBackend.External)
+                return Ok();
+            var instance = instanceProvider.GetCurrentInstance();
+            if (instance != null)
             {
-                var instance = instanceProvider.GetCurrentInstance();
-                if (instance != null)
+                lock (instance)
                 {
-                    lock(instance)
-                    {
-                        if (pose.robot_id >= 0)
-                        {
-                            var bot = instance.Bots.FirstOrDefault(b => b.ID == pose.robot_id);
-                            if (bot != null && pose.position != null && pose.position.Length >= 2)
-                            {
-                                double newO = pose.rotation != null && pose.rotation.Length >= 4 ? pose.rotation[3] : bot.Orientation;
-                                var tier = instance.Compound.BotCurrentTier.ContainsKey(bot) ? instance.Compound.BotCurrentTier[bot] : null;
-                                if (tier != null)
-                                {
-                                    tier.MoveBotOverride(bot, pose.position[0], pose.position[1]);
-                                    bot.SetPhysicalOrientation(newO);
-                                }
-                                else
-                                {
-                                    bot.SetPhysicalState(pose.position[0], pose.position[1], newO);
-                                }
-                                bot.LastConfirmedPosition = new[] { bot.X, bot.Y, bot.Orientation };
-                                bot.LastPhysicalUpdateTime = DateTime.UtcNow;
-
-                                // Zero velocity so BotMove.Act's setNextWaypoint succeeds
-                                bot.ZeroVelocity();
-
-                                // Determine the current target waypoint (NextWaypoint or from path)
-                                var botNormal = bot as BotNormal;
-                                Waypoint targetWp = botNormal?.NextWaypoint;
-                                if (targetWp == null && botNormal?.Path != null && botNormal.Path.Count > 0)
-                                {
-                                    targetWp = instance.Controller.PathManager.GetWaypointByNodeId(botNormal.Path.NextAction.Node);
-                                }
-
-                                if (targetWp != null)
-                                {
-                                    double wpDist = Math.Sqrt(
-                                        Math.Pow(bot.X - targetWp.X, 2) +
-                                        Math.Pow(bot.Y - targetWp.Y, 2));
-                                    if (wpDist < 0.5)
-                                    {
-                                        // Bot reached the waypoint
-                                        bot.CurrentWaypoint = targetWp;
-
-                                        // Advance the path directly so SSE sees the next
-                                        // segment immediately, without waiting for BotMove.Act.
-                                        if (botNormal?.Path != null && botNormal.Path.Count > 0)
-                                        {
-                                            var nextActionNode = instance.Controller.PathManager.GetWaypointByNodeId(botNormal.Path.NextAction.Node);
-                                            if (nextActionNode != null && nextActionNode.ID == targetWp.ID)
-                                            {
-                                                botNormal.Path.RemoveFirstAction();
-                                                while (botNormal.Path.Count > 0 && !botNormal.Path.NextAction.StopAtNode)
-                                                    botNormal.Path.RemoveFirstAction();
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ApplyRobotPose(instance, pose);
                 }
             }
             return Ok();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public IActionResult UpdatePhysicalPoses([FromBody] List<RobotPoseDto> poses)
+        {
+            // Batched feedback from Isaac: ONE POST per frame carries every robot's pose, so the
+            // 60 Hz Isaac main loop no longer blocks on N serial per-robot POSTs (which cost
+            // 10-50 ms+/frame and made motion choppy). The whole list is processed under a single
+            // lock so N robots no longer contend N separate times with the SSE stream's instance
+            // reads.
+            if (backendOptions.Backend != PhysicsBackend.External)
+                return Ok();
+            var instance = instanceProvider.GetCurrentInstance();
+            if (instance != null && poses != null)
+            {
+                lock (instance)
+                {
+                    foreach (var pose in poses)
+                        ApplyRobotPose(instance, pose);
+                }
+            }
+            return Ok();
+        }
+
+        private void ApplyRobotPose(RAWSimO.Core.Instance instance, RobotPoseDto pose)
+        {
+            if (pose == null || pose.robot_id < 0)
+                return;
+            var bot = instance.Bots.FirstOrDefault(b => b.ID == pose.robot_id);
+            if (bot == null || pose.position == null || pose.position.Length < 2)
+                return;
+            double newO = pose.rotation != null && pose.rotation.Length >= 4 ? pose.rotation[3] : bot.Orientation;
+            var tier = instance.Compound.BotCurrentTier.ContainsKey(bot) ? instance.Compound.BotCurrentTier[bot] : null;
+            if (tier != null)
+            {
+                tier.MoveBotOverride(bot, pose.position[0], pose.position[1]);
+                bot.SetPhysicalOrientation(newO);
+            }
+            else
+            {
+                bot.SetPhysicalState(pose.position[0], pose.position[1], newO);
+            }
+            bot.LastConfirmedPosition = new[] { bot.X, bot.Y, bot.Orientation };
+            bot.LastPhysicalUpdateTime = DateTime.UtcNow;
+
+            // Zero velocity so BotMove.Act's setNextWaypoint succeeds. This endpoint only pumps
+            // the pose; waypoint arrival / path advancement is decided inside BotNormal._updateMove
+            // from this real position (physical-mode branch), which owns the NextWaypoint setter
+            // (it is not settable from this assembly).
+            bot.ZeroVelocity();
         }
 
     [HttpPost]

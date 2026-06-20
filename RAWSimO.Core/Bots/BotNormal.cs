@@ -715,6 +715,33 @@ public class BotNormal : Bot
     /// <param name="currentTime">time stamp: now</param>
     private void _updateMove(double currentTime)
     {
+        // Physical/external mode: Isaac (PhysX) owns the motion; the external pose endpoint pumps
+        // the robot's real X/Y into us each frame. Declare waypoint arrival from that REAL
+        // position -- NOT from our internal drive-duration clock. _driveDuration reflects RAWSim-O's
+        // own speed model, which is decoupled from Isaac's actual travel, so a clock-based arrival
+        // would fire before/after the robot truly reaches the waypoint. 
+        // When the real position is within 0.1 m of NextWaypoint,
+        // advance CurrentWaypoint and clear NextWaypoint so BotMove.Act (which runs again in the
+        // SAME Update tick, right after _updateDrive) pops the path and registers the next segment.
+        // 0.1 m sits just above Isaac's POS_THRESHOLD snap (0.05 m); Isaac snaps the robot exactly
+        // onto the waypoint, so this fires right as the robot truly arrives. No X/Y velocity is
+        // set here (it would block setNextWaypoint via GetSpeed()>0, and the pose endpoint zeroes
+        // velocity anyway).
+        if (SimBackendOptions.IsExternal)
+        {
+            if (NextWaypoint != null)
+            {
+                double dx = NextWaypoint.X - X;
+                double dy = NextWaypoint.Y - Y;
+                if (dx * dx + dy * dy <= 0.01) // 0.1 m squared
+                {
+                    CurrentWaypoint = NextWaypoint;
+                    NextWaypoint = null;
+                }
+            }
+            return;
+        }
+
         //get distance traveled
         double distanceTraveled;
         double speed;
