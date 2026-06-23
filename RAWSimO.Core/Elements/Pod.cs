@@ -69,6 +69,22 @@ public class Pod : Circle, IPodInfo, IExposeVolatileID
     internal Bot Bot;
 
     /// <summary>
+    /// Public read accessor over <see cref="InUse"/>: whether this pod is currently carried by a
+    /// bot (set by <see cref="Bot.PickupPod"/>, cleared by <see cref="Bot.SetdownPod"/>). Exposed so
+    /// external assemblies (e.g. the web server streaming physical state) can report RAWSim-O's
+    /// authoritative carry decision instead of an Isaac-side geometry guess.
+    /// </summary>
+    public bool IsCarried => InUse;
+
+    /// <summary>
+    /// Public read accessor over <see cref="Bot"/>: the ID of the bot currently carrying this pod,
+    /// or -1 when it rests. Maintained by the bot manager on pickup/setdown (consistent with
+    /// <see cref="IsCarried"/>). Lets the physical stream tell Isaac exactly which robot a carried
+    /// pod rides on, for lag-free rigid attachment instead of position-coincidence guessing.
+    /// </summary>
+    public int CarryingBotID => Bot?.ID ?? -1;
+
+    /// <summary>
     /// The set of bundles not yet allocated but already registered with this pod.
     /// </summary>
     private readonly HashSet<ItemBundle> _registeredBundles = [];

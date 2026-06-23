@@ -203,7 +203,14 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
                             pods.Add(new
                             {
                                 pod_id = pod.ID,
-                                position = new[] { pod.X, pod.Y, pod.Orientation }
+                                position = new[] { pod.X, pod.Y, pod.Orientation },
+                                // RAWSim-O's authoritative carry decision: the ID of the bot
+                                // currently carrying this pod (-1 when it rests). Set by the bot
+                                // manager on pickup, cleared on setdown; a carried pod is also parked
+                                // exactly on its robot by Tier.MoveBotOverride ("盒子和车完全在同一点").
+                                // Isaac rigidly attaches a carried pod to this bot -- fully
+                                // RAWSim-O-driven, lag-free, no Isaac-side geometry heuristic.
+                                carried_by = pod.CarryingBotID
                             });
                         }
                         var payload = new { robots, pods };
