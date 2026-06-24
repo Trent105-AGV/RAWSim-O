@@ -1800,6 +1800,10 @@ public class ItemManager : IItemManagerInfo
         }
     }
 
+    /// <summary>
+    /// Returns a point-in-time snapshot of the completed orders (info accessor).
+    /// </summary>
+    /// <returns>A list copy of the completed orders.</returns>
     public IEnumerable<IOrderInfo> GetInfoCompletedOrders()
     {
         lock (_syncRoot)

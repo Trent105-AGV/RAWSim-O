@@ -488,9 +488,26 @@ public abstract class Bot : Circle, IBotInfo, IUpdateable, IBotEventListener, IE
 
     #endregion
 
+    /// <summary>
+    /// Gets the x-coordinate of the current target waypoint, or the bot's own x if it has none.
+    /// </summary>
+    /// <returns>The target x-coordinate.</returns>
     public double GetCurrentTargetX() { return TargetWaypoint != null ? TargetWaypoint.X : X; }
+
+    /// <summary>
+    /// Gets the y-coordinate of the current target waypoint, or the bot's own y if it has none.
+    /// </summary>
+    /// <returns>The target y-coordinate.</returns>
     public double GetCurrentTargetY() { return TargetWaypoint != null ? TargetWaypoint.Y : Y; }
 
+    /// <summary>
+    /// Overrides the bot's pose from an external/physical source (external/physical mode, where
+    /// Isaac Lab drives the motion and reports the integrated pose back). Zeroes velocity so the
+    /// state machine's setNextWaypoint is not blocked by GetSpeed &gt; 0.
+    /// </summary>
+    /// <param name="x">The new x-coordinate.</param>
+    /// <param name="y">The new y-coordinate.</param>
+    /// <param name="yaw">The new orientation in radians.</param>
     public void SetPhysicalState(double x, double y, double yaw)
     {
         X = x;
@@ -500,11 +517,19 @@ public abstract class Bot : Circle, IBotInfo, IUpdateable, IBotEventListener, IE
         YVelocity = 0;
     }
 
+    /// <summary>
+    /// Overrides the bot's orientation from an external/physical source (external/physical mode).
+    /// </summary>
+    /// <param name="yaw">The new orientation in radians.</param>
     public void SetPhysicalOrientation(double yaw)
     {
         Orientation = yaw;
     }
 
+    /// <summary>
+    /// Zeroes the bot's velocity. Used in external/physical mode so BotMove.Act's setNextWaypoint
+    /// (rejected while GetSpeed &gt; 0) can succeed after an external pose update.
+    /// </summary>
     public void ZeroVelocity()
     {
         XVelocity = 0;

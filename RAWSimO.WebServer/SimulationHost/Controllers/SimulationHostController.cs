@@ -194,7 +194,14 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
                                 robot_id = bot.ID,
                                 destination = dest,
                                 position = bot.LastConfirmedPosition ?? new[] { bot.X, bot.Y, bot.Orientation },
-                                path = pathSegments
+                                path = pathSegments,
+                                // Dynamics (RAWSim-O's per-bot accel/speed model) so Isaac can drive a
+                                // mass/acceleration-aware motion profile instead of a fixed speed. Small,
+                                // near-static values riding on the existing stream -> minimal overhead.
+                                max_accel = bot.MaxAcceleration,
+                                max_decel = bot.MaxDeceleration,
+                                max_vel = bot.MaxVelocity,
+                                turn = bot.TurnSpeed
                             });
                         }
                         var pods = new List<object>();
@@ -210,7 +217,11 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
                                 // exactly on its robot by Tier.MoveBotOverride ("盒子和车完全在同一点").
                                 // Isaac rigidly attaches a carried pod to this bot -- fully
                                 // RAWSim-O-driven, lag-free, no Isaac-side geometry heuristic.
-                                carried_by = pod.CarryingBotID
+                                carried_by = pod.CarryingBotID,
+                                // Cargo weight currently in the pod (CapacityInUse). With carried_by this
+                                // lets Isaac weigh down the carrying robot (total mass = robot + pod + cargo)
+                                // -> heavier load, slower accel/decel.
+                                load = pod.GetInfoCapacityUsed()
                             });
                         }
                         var payload = new { robots, pods };
