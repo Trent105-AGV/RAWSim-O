@@ -214,7 +214,7 @@ public sealed class SimulationHostController(ISimulationHostService hostService,
                                 // RAWSim-O's authoritative carry decision: the ID of the bot
                                 // currently carrying this pod (-1 when it rests). Set by the bot
                                 // manager on pickup, cleared on setdown; a carried pod is also parked
-                                // exactly on its robot by Tier.MoveBotOverride ("盒子和车完全在同一点").
+                                // exactly on its robot by Tier.MoveBotOverride.
                                 // Isaac rigidly attaches a carried pod to this bot -- fully
                                 // RAWSim-O-driven, lag-free, no Isaac-side geometry heuristic.
                                 carried_by = pod.CarryingBotID,
