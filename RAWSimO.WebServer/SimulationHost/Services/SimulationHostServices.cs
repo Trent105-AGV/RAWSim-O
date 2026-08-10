@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -70,6 +71,10 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
     private volatile bool _isPaused;
 
     private volatile int _speedMultiplier = 1;
+    // Physical-mode wall-clock stepping: advances sim-time by real elapsed seconds so the
+    // reservation table's timestamps match Isaac's actual bot motion.
+    private readonly Stopwatch _loopStopwatch = new();
+    private double _extTimeAccumulator;
 
     private volatile RenderFrameDto? _latestFrame;
 
@@ -901,25 +906,55 @@ public sealed class SimulationHostServices(IHubContext<MessageHub, IMessageClien
             const double stepDt = 0.05;
             var steps = 0;
             var endTime = instance.SettingConfig.SimulationWarmupTime + instance.SettingConfig.SimulationDuration;
+            bool external = RAWSimO.Core.Control.SimBackendOptions.IsExternal;
+            _loopStopwatch.Restart();
+            _extTimeAccumulator = 0.0;
 
             while (!ct.IsCancellationRequested && instance.Controller.CurrentTime < endTime)
             {
                 if (_isPaused)
                 {
                     Thread.Sleep(25);
+                    _loopStopwatch.Restart();  // don't accumulate paused wall-clock
                     continue;
                 }
 
-                int currentSpeed = _speedMultiplier;
-                for (int i = 0; i < currentSpeed; i++)
+                if (external)
                 {
-                    if (ct.IsCancellationRequested || instance.Controller.CurrentTime >= endTime)
-                        break;
-                    lock (instance)
+                    // Physical mode: advance sim-time by REAL wall-clock so the reservation table's
+                    // timestamps match Isaac's actual bot motion (Isaac owns the pace, so the viz
+                    // _speedMultiplier is ignored). Fixed-stepDt Updates are preserved; the
+                    // accumulator is capped so a frame stall can't spiral.
+                    double realElapsed = _loopStopwatch.Elapsed.TotalSeconds;
+                    _loopStopwatch.Restart();
+                    _extTimeAccumulator += realElapsed;
+                    if (_extTimeAccumulator > stepDt * 10.0)
+                        _extTimeAccumulator = stepDt * 10.0;
+                    while (_extTimeAccumulator >= stepDt)
                     {
-                        instance.Controller.Update(stepDt);
+                        if (ct.IsCancellationRequested || instance.Controller.CurrentTime >= endTime)
+                            break;
+                        lock (instance)
+                        {
+                            instance.Controller.Update(stepDt);
+                        }
+                        steps++;
+                        _extTimeAccumulator -= stepDt;
                     }
-                    steps++;
+                }
+                else
+                {
+                    int currentSpeed = _speedMultiplier;
+                    for (int i = 0; i < currentSpeed; i++)
+                    {
+                        if (ct.IsCancellationRequested || instance.Controller.CurrentTime >= endTime)
+                            break;
+                        lock (instance)
+                        {
+                            instance.Controller.Update(stepDt);
+                        }
+                        steps++;
+                    }
                 }
 
                 RenderOptions runOptions;

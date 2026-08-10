@@ -424,7 +424,12 @@ public class BotNormal : Bot
 
         _startOrientation = Orientation;
         _endOrientation = GetOrientation(X, Y, waypoint.X, waypoint.Y);
-        var rotateDuration = Physics.getTimeNeededToTurn(_startOrientation, _endOrientation);
+        // Time the rotation/drive with the SAME physics the reservation table uses (scaled to Isaac's
+        // viz speeds in external mode). Otherwise the execution-time reservation assumes a slow
+        // (unscaled) turn that lands in a future slot conflicting with neighbours -> the departure
+        // reservation fails and the bot never leaves (e.g. parked at a station after pickup).
+        var reservationPhysics = Instance.Controller.PathManager.GetReservationPhysics(this);
+        var rotateDuration = reservationPhysics.getTimeNeededToTurn(_startOrientation, _endOrientation);
         var waitUntil = Math.Max(_waitUntil, currentTime);
 
         if (Instance.Controller.PathManager.RegisterNextWaypoint(this, currentTime, waitUntil, rotateDuration, CurrentWaypoint, waypoint))
@@ -435,14 +440,14 @@ public class BotNormal : Bot
             //set move times
             _waitUntil = waitUntil;
             _rotateDuration = rotateDuration;
-            _driveDuration = Physics.getTimeNeededToMove(0, CurrentWaypoint.GetDistance(NextWaypoint));
+            _driveDuration = reservationPhysics.getTimeNeededToMove(0, CurrentWaypoint.GetDistance(NextWaypoint));
 
             return true;
 
         }
 
         NextWaypoint = null;
-        if (RequestReoptimizationAfterFailingOfNextWaypointReservation)
+        if (RequestReoptimizationAfterFailingOfNextWaypointReservation || SimBackendOptions.IsExternal)
             RequestReoptimization = true;
 
         // Log failed reservation

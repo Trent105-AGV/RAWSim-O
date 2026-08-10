@@ -373,7 +373,7 @@ public abstract class PathManager : IUpdateable, IStatTracker
                 FixedPosition = bot.hasFixedPosition(),
                 Resting = bot.IsResting(),
                 CanGoThroughObstacles = Instance.ControllerConfig.PathPlanningConfig.CanTunnel && bot.Pod == null,
-                Physics = bot.Physics,
+                Physics = GetReservationPhysics(bot),
                 RequestReoptimization = bot.RequestReoptimization,
                 Queueing = bot.IsQueueing,
                 NextNodeObject = nextWaypoint,
@@ -472,6 +472,25 @@ public abstract class PathManager : IUpdateable, IStatTracker
     }
 
     /// <summary>
+    /// The physics to use for reservation/planner timing. In external/physical mode bots move at
+    /// Isaac's visualization speeds (see <see cref="SimBackendOptions"/>'s viz scales), so the
+    /// reservation table must time segments at those scaled speeds -- otherwise its cooperative
+    /// space-time plan does not match the real (fast) motion and bots pile up. In internal mode the
+    /// bot's realistic physics is returned unchanged. The bot's real physics (e.g. streamed to
+    /// Isaac) is never mutated.
+    /// </summary>
+    internal RAWSimO.MultiAgentPathFinding.Physic.Physics GetReservationPhysics(BotNormal bot)
+    {
+        if (!SimBackendOptions.IsExternal)
+            return bot.Physics;
+        return new RAWSimO.MultiAgentPathFinding.Physic.Physics(
+            bot.Physics.Acceleration * SimBackendOptions.VizAccelScale,
+            bot.Physics.Deceleration * SimBackendOptions.VizDecelScale,
+            bot.Physics.MaxSpeed * SimBackendOptions.VizVelocityScale,
+            SimBackendOptions.VizTurnTime);
+    }
+
+    /// <summary>
     /// Checks weather the bot can go to the next way point without collisions.
     /// </summary>
     /// <param name="botNormal">The bot.</param>
@@ -484,7 +503,7 @@ public abstract class PathManager : IUpdateable, IStatTracker
     public bool RegisterNextWaypoint(BotNormal botNormal, double currentTime, double blockCurrentWaypointUntil, double rotationDuration, Waypoint waypointStart, Waypoint waypointEnd)
     {
         //get checkpoints
-        var tmpReservations = _reservationTable.CreateIntervals(currentTime, blockCurrentWaypointUntil + rotationDuration, 0.0, botNormal.Physics, _waypointIds[waypointStart], _waypointIds[waypointEnd], true);
+        var tmpReservations = _reservationTable.CreateIntervals(currentTime, blockCurrentWaypointUntil + rotationDuration, 0.0, GetReservationPhysics(botNormal), _waypointIds[waypointStart], _waypointIds[waypointEnd], true);
 
         if (tmpReservations == null)
             return false; //no valid way point

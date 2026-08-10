@@ -50,6 +50,21 @@ public static class SimBackendOptions
     /// <summary>True when the external/physical (Isaac Lab) backend is active.</summary>
     public static bool IsExternal => _current == PhysicsBackend.External;
 
+    // --- Visualization speed scales (external/physical mode only) ---------------------------
+    // Isaac Lab drives bots this many times faster than their realistic Physics, for fast
+    // visualization (see Isaac's motion_backends.py: VEL/ACCEL/DECEL_VIZ_SCALE and
+    // ROTATION_SPEED = 3*pi rad/s). The reservation table MUST time bot segments at these scaled
+    // speeds, otherwise its cooperative space-time plan does not match the real (fast) motion and
+    // bots pile up. These MUST stay in sync with motion_backends.py.
+    /// <summary>== Isaac <c>VEL_VIZ_SCALE</c>.</summary>
+    public const double VizVelocityScale = 15.0;
+    /// <summary>== Isaac <c>ACCEL_VIZ_SCALE</c>.</summary>
+    public const double VizAccelScale = 100.0;
+    /// <summary>== Isaac <c>DECEL_VIZ_SCALE</c>.</summary>
+    public const double VizDecelScale = 150.0;
+    /// <summary>Time (s) for a full 2*pi turn as Isaac drives it: 2*pi / (3*pi rad/s) = 2/3.</summary>
+    public const double VizTurnTime = 2.0 / 3.0;
+
     private static PhysicsBackend ResolveFromEnvironment()
     {
         string raw = Environment.GetEnvironmentVariable("USE_RAWSIMO_PHYSICAL");
